@@ -63,31 +63,33 @@ client.on(Events.InteractionCreate, async interaction => {
 
   try {
     // 🔥 define categoria corretamente
-    const categoriaId = interaction.channel.parentId ?? '1487970461466759248';
+        const categoriaId = interaction.channel.parentId ?? '1487970461466759248';
 
-    // ✅ cria canal SEM categoria primeiro
-    const canal = await interaction.guild.channels.create({
-      name: nomeCanal,
-      type: ChannelType.GuildText,
-      permissionOverwrites: [
-        {
-          id: interaction.guild.id,
-          deny: [
-            'ViewChannel'
-          ]
-        },
-        {
-          id: interaction.user.id,
-          allow: [
-            'ViewChannel',
-            'SendMessages',
-            'AttachFiles',        // 📎 enviar imagens/arquivos
-            'EmbedLinks',         // 🔗 links bonitos
-            'ReadMessageHistory'  // 📜 ver mensagens antigas
-          ]
-        }
-      ]
-    });
+        const canal = await interaction.guild.channels.create({
+          name: nomeCanal,
+          type: ChannelType.GuildText
+        });
+
+        // 🔥 move pra categoria
+        await canal.setParent(categoriaId, { lockPermissions: false });
+
+        // 🔥 AGORA define permissões (depois de mover!)
+        await canal.permissionOverwrites.set([
+          {
+            id: interaction.guild.id,
+            deny: ['ViewChannel']
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              'ViewChannel',
+              'SendMessages',
+              'AttachFiles',
+              'EmbedLinks',
+              'ReadMessageHistory'
+            ]
+          }
+        ]);
 
     // ✅ move pra categoria depois (100% garantido)
     await canal.setParent(categoriaId);
