@@ -9,7 +9,8 @@ const {
   ButtonStyle,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle
+  TextInputStyle,
+  ChannelType
 } = require('discord.js');
 
 const fs = require('fs');
@@ -46,67 +47,77 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.isButton()) {
 
     // 🎫 CRIAR TICKET
-    if (interaction.customId === 'criar_ticket') {
+ if (interaction.customId === 'criar_ticket') {
 
-      const nomeCanal = `ticket-${interaction.user.username}`.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  const nomeCanal = `ticket-${interaction.user.username}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
 
-      const existente = interaction.guild.channels.cache.find(c => c.name === nomeCanal);
-      if (existente) {
-        return interaction.reply({
-          content: '❌ Você já tem um ticket aberto.',
-          flags: 64
-        });
-      }
+  const existente = interaction.guild.channels.cache.find(c => c.name === nomeCanal);
+  if (existente) {
+    return interaction.reply({
+      content: '❌ Você já tem um ticket aberto.',
+      flags: 64
+    });
+  }
 
-      try {
-        const canal = await interaction.guild.channels.create({
-          name: nomeCanal,
-          type: 0,
-          parent: interaction.channel.parentId || '1487970461466759248',
-          permissionOverwrites: [
-            {
-              id: interaction.guild.id,
-              deny: ['ViewChannel']
-            },
-            {
-              id: interaction.user.id,
-              allow: ['ViewChannel', 'SendMessages']
-            }
-          ]
-        });
+  try {
+    // 🔥 define categoria corretamente
+    const categoriaId = interaction.channel.parentId ?? '1487970461466759248';
 
-        const embed = new EmbedBuilder()
-          .setColor(0x57F287)
-          .setTitle('🎫 Ticket criado')
-          .setDescription(`Olá <@${interaction.user.id}>, aguarde atendimento.`)
-          .setTimestamp();
+    // ✅ cria canal SEM categoria primeiro
+    const canal = await interaction.guild.channels.create({
+      name: nomeCanal,
+      type: ChannelType.GuildText,
+      permissionOverwrites: [
+        {
+          id: interaction.guild.id,
+          deny: ['ViewChannel']
+        },
+        {
+          id: interaction.user.id,
+          allow: ['ViewChannel', 'SendMessages']
+        }
+      ]
+    });
 
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('fechar_ticket')
-            .setLabel('Fechar Ticket')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('🔒')
-        );
+    // ✅ move pra categoria depois (100% garantido)
+    await canal.setParent(categoriaId);
 
-        await canal.send({
-          embeds: [embed],
-          components: [row]
-        });
+    const embed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle('🎫 Ticket criado')
+      .setDescription(`Olá <@${interaction.user.id}>, aguarde atendimento.`)
+      .setTimestamp();
 
-        return interaction.reply({
-          content: `✅ Ticket criado: ${canal}`,
-          flags: 64
-        });
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('fechar_ticket')
+        .setLabel('Fechar Ticket')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🔒')
+    );
 
-      } catch (err) {
-        console.error(err);
-        return interaction.reply({
-          content: '❌ Erro ao criar ticket.',
-          flags: 64
-        });
-      }
-    }
+    // ✅ garante envio com botão
+    await canal.send({
+      embeds: [embed],
+      components: [row]
+    });
+
+    return interaction.reply({
+      content: `✅ Ticket criado: ${canal}`,
+      flags: 64
+    });
+
+  } catch (err) {
+    console.error('ERRO AO CRIAR TICKET:', err);
+
+    return interaction.reply({
+      content: '❌ Erro ao criar ticket.',
+      flags: 64
+    });
+  }
+}
 
     // 🔒 BOTÃO FECHAR
     if (interaction.customId === 'fechar_ticket') {
