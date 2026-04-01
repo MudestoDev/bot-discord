@@ -14,10 +14,19 @@ const rest = new REST({ version: '10' }).setToken(config.token);
 
 (async () => {
   try {
-    console.log('🔄 Registrando comandos...');
+    console.log('🔄 Limpando comandos antigos...');
 
+    // 🧹 limpa comandos antigos (evita bug/cache)
     await rest.put(
-      Routes.applicationCommands(config.clientId),
+      Routes.applicationGuildCommands(config.clientId, config.guildId),
+      { body: [] }
+    );
+
+    console.log('🔄 Registrando novos comandos...');
+
+    // 🚀 registra comandos no servidor (instantâneo)
+    await rest.put(
+      Routes.applicationGuildCommands(config.clientId, config.guildId),
       { body: commands }
     );
 

@@ -15,7 +15,7 @@ module.exports = {
 
   async execute(interaction) {
     const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
+      .setColor(0x5865F2)                                                   
       .setTitle('🎫 Sistema de Tickets')
       .setDescription('Clique no botão abaixo para abrir um ticket.')
       .setFooter({

@@ -46,20 +46,21 @@ client.on(Events.InteractionCreate, async interaction => {
       }
 
       try {
-        const canal = await interaction.guild.channels.create({
-          name: nomeCanal,
-          type: 0,
-          permissionOverwrites: [
-            {
-              id: interaction.guild.id,
-              deny: ['ViewChannel']
-            },
-            {
-              id: interaction.user.id,
-              allow: ['ViewChannel', 'SendMessages']
-            }
-          ]
-        });
+const canal = await interaction.guild.channels.create({
+  name: nomeCanal,
+  type: 0,
+  parent: '1487970461466759248', // 👈 SUA CATEGORIA
+  permissionOverwrites: [
+    {
+      id: interaction.guild.id,
+      deny: ['ViewChannel']
+    },
+    {
+      id: interaction.user.id,
+      allow: ['ViewChannel', 'SendMessages']
+    }
+  ]
+});
 
         const embed = new EmbedBuilder()
           .setColor(0x57F287)
