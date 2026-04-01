@@ -72,11 +72,19 @@ client.on(Events.InteractionCreate, async interaction => {
       permissionOverwrites: [
         {
           id: interaction.guild.id,
-          deny: ['ViewChannel']
+          deny: [
+            'ViewChannel'
+          ]
         },
         {
           id: interaction.user.id,
-          allow: ['ViewChannel', 'SendMessages']
+          allow: [
+            'ViewChannel',
+            'SendMessages',
+            'AttachFiles',        // 📎 enviar imagens/arquivos
+            'EmbedLinks',         // 🔗 links bonitos
+            'ReadMessageHistory'  // 📜 ver mensagens antigas
+          ]
         }
       ]
     });
