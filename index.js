@@ -63,36 +63,32 @@ client.on(Events.InteractionCreate, async interaction => {
 
   try {
     // 🔥 define categoria corretamente
-        const categoriaId = interaction.channel.parentId ?? '1487970461466759248';
 
-        const canal = await interaction.guild.channels.create({
-          name: nomeCanal,
-          type: ChannelType.GuildText
-        });
+const canal = await interaction.guild.channels.create({
+  name: nomeCanal,
+  type: ChannelType.GuildText
+});
 
-        // 🔥 move pra categoria
-        await canal.setParent(categoriaId, { lockPermissions: false });
+// 🔥 move SEM sincronizar
+await canal.setParent(categoriaId, { lockPermissions: false });
 
-        // 🔥 AGORA define permissões (depois de mover!)
-        await canal.permissionOverwrites.set([
-          {
-            id: interaction.guild.id,
-            deny: ['ViewChannel']
-          },
-          {
-            id: interaction.user.id,
-            allow: [
-              'ViewChannel',
-              'SendMessages',
-              'AttachFiles',
-              'EmbedLinks',
-              'ReadMessageHistory'
-            ]
-          }
-        ]);
-
-    // ✅ move pra categoria depois (100% garantido)
-    await canal.setParent(categoriaId);
+// 🔥 aplica permissões depois
+await canal.permissionOverwrites.set([
+  {
+    id: interaction.guild.id,
+    deny: ['ViewChannel']
+  },
+  {
+    id: interaction.user.id,
+    allow: [
+      'ViewChannel',
+      'SendMessages',
+      'AttachFiles',
+      'EmbedLinks',
+      'ReadMessageHistory'
+    ]
+  }
+]);
 
     const embed = new EmbedBuilder()
       .setColor(0x57F287)
