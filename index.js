@@ -5,7 +5,7 @@ if (interaction.isButton()) {
   // =========================
 
   if (interaction.customId === 'criar_ticket') {
-    // (SEU CÓDIGO DE TICKET - PODE MANTER)
+    // seu código aqui
   }
 
   if (interaction.customId === 'fechar_ticket') {
@@ -29,64 +29,97 @@ if (interaction.isButton()) {
   // 🎮 FILA
   // =========================
 
-  if (interaction.customId.startsWith('fila_')) {
+  if (!interaction.customId || !interaction.customId.startsWith('fila_')) return;
 
-    const [_, action, id] = interaction.customId.split('_');
-    const fila = filas.get(id);
+  const partes = interaction.customId.split('_');
+  const action = partes[1];
+  const id = partes[2];
 
-    if (!fila) return;
+  const fila = filas.get(id);
+  if (!fila) {
+    return interaction.reply({ content: '❌ Fila não encontrada.', flags: 64 });
+  }
 
-    const userId = interaction.user.id;
+  const userId = interaction.user.id;
 
-    // ENTRAR
-    if (action === 'entrar') {
-      if (fila.jogadores.includes(userId))
-        return interaction.reply({ content: 'Já está na fila', flags: 64 });
+  // =========================
+  // 🎯 AÇÕES
+  // =========================
 
-      if (fila.jogadores.length >= fila.tamanho)
-        return interaction.reply({ content: 'Fila cheia', flags: 64 });
-
-      fila.jogadores.push(userId);
+  if (action === 'entrar') {
+    if (fila.jogadores.includes(userId)) {
+      return interaction.reply({ content: '⚠️ Você já está na fila.', flags: 64 });
     }
 
-    // SAIR
-    if (action === 'sair') {
-      fila.jogadores = fila.jogadores.filter(u => u !== userId);
+    if (fila.jogadores.length >= fila.tamanho) {
+      return interaction.reply({ content: '❌ Fila já está cheia.', flags: 64 });
     }
 
-    // START
-    if (action === 'start') {
-      if (fila.jogadores.length < fila.tamanho)
-        return interaction.reply({ content: 'Fila não está cheia', flags: 64 });
+    fila.jogadores.push(userId);
+  }
 
-      await iniciarFila(interaction, fila, id);
-      return;
+  if (action === 'sair') {
+    fila.jogadores = fila.jogadores.filter(u => u !== userId);
+  }
+
+  if (action === 'start') {
+    if (fila.jogadores.length < fila.tamanho) {
+      return interaction.reply({ content: '❌ Fila ainda não está cheia.', flags: 64 });
     }
 
-    // FINALIZAR
-    if (action === 'end') {
-      const canais = interaction.guild.channels.cache.filter(c =>
-        c.name.startsWith(`fila-${id}`)
-      );
+    await interaction.deferUpdate(); // 🔥 evita erro de interação
+    await iniciarFila(interaction, fila, id);
+    return;
+  }
 
-      for (const canal of canais.values()) {
-        await canal.delete().catch(() => {});
+  if (action === 'end') {
+    const canais = interaction.guild.channels.cache.filter(c =>
+      c.name.startsWith(`fila-${id}`)
+    );
+
+    for (const canal of canais.values()) {
+      await canal.delete().catch(() => {});
+    }
+
+    filas.delete(id);
+
+    return interaction.reply({
+      content: '✅ Fila finalizada e removida.',
+      flags: 64
+    });
+  }
+
+  // =========================
+  // 🔄 ATUALIZAR EMBED
+  // =========================
+
+  const lista = fila.jogadores.length
+    ? fila.jogadores.map(id => `<@${id}>`).join('\n')
+    : 'Nenhum jogador';
+
+  const embed = EmbedBuilder.from(interaction.message.embeds[0])
+    .setFields({
+      name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
+      value: lista
+    });
+
+  await interaction.update({ embeds: [embed] });
+
+  // =========================
+  // ⏱️ AUTO START
+  // =========================
+
+  if (fila.jogadores.length === fila.tamanho) {
+
+    setTimeout(async () => {
+      try {
+        const filaAtual = filas.get(id);
+        if (!filaAtual) return;
+
+        await iniciarFila(interaction, filaAtual, id);
+      } catch (err) {
+        console.error('Erro no auto start:', err);
       }
-
-      return interaction.reply({ content: '✅ Fila finalizada', flags: 64 });
-    }
-
-    // UPDATE EMBED
-    const lista = fila.jogadores.map(id => `<@${id}>`).join('\n') || 'Vazio';
-
-    const embed = EmbedBuilder.from(interaction.message.embeds[0])
-      .setFields({ name: 'Jogadores', value: lista });
-
-    await interaction.update({ embeds: [embed] });
-
-    // AUTO START
-    if (fila.jogadores.length === fila.tamanho) {
-      setTimeout(() => iniciarFila(interaction, fila, id), 10000);
-    }
+    }, 10000);
   }
 }
