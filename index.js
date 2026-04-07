@@ -95,15 +95,24 @@ client.on(Events.InteractionCreate, async interaction => {
       // =========================
       // ➕ ENTRAR
       // =========================
-      if (action === 'entrar') {
-        if (fila.jogadores.includes(userId))
-          return interaction.reply({ content: 'Já está na fila', flags: 64 });
+if (action === 'entrar') {
 
-        if (fila.jogadores.length >= fila.tamanho)
-          return interaction.reply({ content: 'Fila cheia', flags: 64 });
+  if (fila.jogadores.includes(userId)) {
+    return interaction.reply({
+      content: '❌ Você já está na fila.',
+      flags: 64
+    });
+  }
 
-        fila.jogadores.push(userId);
-      }
+  if (fila.jogadores.length >= fila.tamanho) {
+    return interaction.reply({
+      content: '❌ Fila cheia.',
+      flags: 64
+    });
+  }
+
+  fila.jogadores.push(userId);
+}
 
       // =========================
       // ➖ SAIR
@@ -135,24 +144,37 @@ client.on(Events.InteractionCreate, async interaction => {
       // =========================
       // 🛑 FINALIZAR
       // =========================
-      if (action === 'end') {
+if (action === 'end') {
 
-        const canais = interaction.guild.channels.cache.filter(c =>
-          c.name.startsWith(`fila-${id}`) || c.name.startsWith(`Chat-Fila-${id}`)
-        );
+  const canais = interaction.guild.channels.cache.filter(c =>
+    c.name.startsWith(`Chat-Fila-${id}`) ||
+    c.name.startsWith(`${id}-Call`)
+  );
 
-        for (const canal of canais.values()) {
-          await canal.delete().catch(() => {});
-        }
+  // ✅ mensagem pública no chat
+  await interaction.channel.send({
+    content: `⚠️ A fila **${id}** foi finalizada.\n🗑️ Os canais serão apagados em 10 segundos...`
+  });
 
-        filas.delete(id);
+  // ✅ resposta privada pra quem clicou
+  await interaction.reply({
+    content: '✅ Fila finalizada com sucesso.',
+    flags: 64
+  });
 
-        return interaction.reply({
-          content: '✅ Fila finalizada',
-          flags: 64
-        });
-      }
+  // ⏳ delay antes de apagar
+  setTimeout(async () => {
 
+    for (const canal of canais.values()) {
+      await canal.delete().catch(() => {});
+    }
+
+    filas.delete(id);
+
+  }, 10000);
+
+  return;
+}
       // =========================
       // 📊 ATUALIZAR SLOTS
       // =========================
@@ -213,7 +235,37 @@ client.on(Events.InteractionCreate, async interaction => {
 // 🚀 FUNÇÃO INICIAR FILA
 // =========================
 async function iniciarFila(guild, fila, id) {
+const canalFila = await guild.channels.fetch(fila.channelId).catch(() => null);
 
+if (canalFila) {
+  const mensagem = await canalFila.messages.fetch(fila.messageId).catch(() => null);
+
+  if (mensagem) {
+    const rowDesativada = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('fila_locked')
+        .setLabel('Entrar')
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(true),
+
+      new ButtonBuilder()
+        .setCustomId('fila_locked')
+        .setLabel('Sair')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+
+      new ButtonBuilder()
+        .setCustomId('fila_locked')
+        .setLabel('Iniciar')
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(true)
+    );
+
+    await mensagem.edit({
+      components: [rowDesativada]
+    });
+  }
+}
   if (fila.iniciadaExecutada) return;
   fila.iniciadaExecutada = true;
 

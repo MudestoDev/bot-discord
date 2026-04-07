@@ -128,10 +128,14 @@ module.exports = {
     // =========================
     // ✅ RESPOSTA (UMA SÓ)
     // =========================
-    return interaction.reply({
-      embeds: [embed],
-      components: [row]
-    });
+        const msg = await interaction.reply({
+        embeds: [embed],
+        components: [row],
+        fetchReply: true
+        });
+
+        filas.get(idFila).messageId = msg.id;
+        filas.get(idFila).channelId = msg.channel.id;
   }
 };
 
