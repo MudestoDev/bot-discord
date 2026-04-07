@@ -164,6 +164,8 @@ if (interaction.isModalSubmit()) {
 
   if (interaction.customId === 'modal_fechar_ticket') {
 
+    await interaction.deferReply({ flags: 64 }); // 🔥 ESSENCIAL
+
     try {
       const motivo = interaction.fields.getTextInputValue('motivo');
 
@@ -172,7 +174,7 @@ if (interaction.isModalSubmit()) {
       let transcript = 'Sem mensagens';
 
       try {
-        const mensagens = await interaction.channel.messages.fetch({ limit: 100 });
+        const mensagens = await interaction.channel.messages.fetch({ limit: 50 });
 
         transcript = mensagens
           .map(m => `[${m.author.tag}] ${m.content}`)
@@ -199,9 +201,8 @@ if (interaction.isModalSubmit()) {
         });
       }
 
-      await interaction.reply({
-        content: '🔒 Ticket será fechado...',
-        flags: 64
+      await interaction.editReply({
+        content: '🔒 Ticket será fechado...'
       });
 
       setTimeout(() => {
@@ -211,12 +212,9 @@ if (interaction.isModalSubmit()) {
     } catch (err) {
       console.error('ERRO NO MODAL:', err);
 
-      if (!interaction.replied) {
-        await interaction.reply({
-          content: '❌ Erro ao fechar ticket.',
-          flags: 64
-        });
-      }
+      await interaction.editReply({
+        content: '❌ Erro ao fechar ticket.'
+      });
     }
   }
 }
