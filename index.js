@@ -61,6 +61,7 @@ if (interaction.customId === 'criar_ticket') {
     .replace(/[^a-z0-9-]/g, '');
 
   const existente = interaction.guild.channels.cache.find(c => c.name === nomeCanal);
+
   if (existente) {
     return interaction.reply({
       content: '❌ Você já tem um ticket aberto.',
@@ -135,20 +136,25 @@ if (interaction.customId === 'criar_ticket') {
 // =========================
 if (interaction.customId === 'fechar_ticket') {
 
-  const modal = new ModalBuilder()
-    .setCustomId('modal_fechar_ticket')
-    .setTitle('Fechar Ticket');
+  try {
+    const modal = new ModalBuilder()
+      .setCustomId('modal_fechar_ticket')
+      .setTitle('Fechar Ticket');
 
-  const motivo = new TextInputBuilder()
-    .setCustomId('motivo')
-    .setLabel('Motivo do fechamento')
-    .setStyle(TextInputStyle.Paragraph)
-    .setRequired(true);
+    const motivo = new TextInputBuilder()
+      .setCustomId('motivo')
+      .setLabel('Motivo do fechamento')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true);
 
-  const row = new ActionRowBuilder().addComponents(motivo);
-  modal.addComponents(row);
+    const row = new ActionRowBuilder().addComponents(motivo);
+    modal.addComponents(row);
 
-  return interaction.showModal(modal);
+    return interaction.showModal(modal);
+
+  } catch (err) {
+    console.error('ERRO AO ABRIR MODAL:', err);
+  }
 }
 
 // =========================
@@ -158,41 +164,60 @@ if (interaction.isModalSubmit()) {
 
   if (interaction.customId === 'modal_fechar_ticket') {
 
-    const motivo = interaction.fields.getTextInputValue('motivo');
+    try {
+      const motivo = interaction.fields.getTextInputValue('motivo');
 
-    const canalLog = interaction.guild.channels.cache.get('1488735992126111804');
+      const canalLog = interaction.guild.channels.cache.get('1488735992126111804');
 
-    const mensagens = await interaction.channel.messages.fetch({ limit: 100 });
+      let transcript = 'Sem mensagens';
 
-    const transcript = mensagens
-      .map(m => `[${m.author.tag}] ${m.content}`)
-      .reverse()
-      .join('\n');
+      try {
+        const mensagens = await interaction.channel.messages.fetch({ limit: 100 });
 
-    const embed = new EmbedBuilder()
-      .setColor(0xED4245)
-      .setTitle('📁 Ticket Fechado')
-      .addFields(
-        { name: '👤 Usuário', value: `<@${interaction.user.id}>` },
-        { name: '📝 Motivo', value: motivo }
-      )
-      .setTimestamp();
+        transcript = mensagens
+          .map(m => `[${m.author.tag}] ${m.content}`)
+          .reverse()
+          .join('\n') || 'Sem mensagens';
 
-    if (canalLog) {
-      await canalLog.send({
-        embeds: [embed],
-        content: `\`\`\`\n${transcript || 'Sem mensagens'}\n\`\`\``
+      } catch (err) {
+        console.error('Erro ao pegar mensagens:', err);
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xED4245)
+        .setTitle('📁 Ticket Fechado')
+        .addFields(
+          { name: '👤 Usuário', value: `<@${interaction.user.id}>` },
+          { name: '📝 Motivo', value: motivo }
+        )
+        .setTimestamp();
+
+      if (canalLog) {
+        await canalLog.send({
+          embeds: [embed],
+          content: `\`\`\`\n${transcript}\n\`\`\``
+        });
+      }
+
+      await interaction.reply({
+        content: '🔒 Ticket será fechado...',
+        flags: 64
       });
+
+      setTimeout(() => {
+        interaction.channel.delete().catch(console.error);
+      }, 3000);
+
+    } catch (err) {
+      console.error('ERRO NO MODAL:', err);
+
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: '❌ Erro ao fechar ticket.',
+          flags: 64
+        });
+      }
     }
-
-    await interaction.reply({
-      content: '🔒 Ticket será fechado...',
-      flags: 64
-    });
-
-    setTimeout(() => {
-      interaction.channel.delete().catch(() => {});
-    }, 3000);
   }
 }
 
