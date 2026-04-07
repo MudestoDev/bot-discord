@@ -235,39 +235,43 @@ if (action === 'end') {
 // 🚀 FUNÇÃO INICIAR FILA
 // =========================
 async function iniciarFila(guild, fila, id) {
-const canalFila = await guild.channels.fetch(fila.channelId).catch(() => null);
 
-if (canalFila) {
-  const mensagem = await canalFila.messages.fetch(fila.messageId).catch(() => null);
-
-  if (mensagem) {
-    const rowDesativada = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('fila_locked')
-        .setLabel('Entrar')
-        .setStyle(ButtonStyle.Success)
-        .setDisabled(true),
-
-      new ButtonBuilder()
-        .setCustomId('fila_locked')
-        .setLabel('Sair')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-
-      new ButtonBuilder()
-        .setCustomId('fila_locked')
-        .setLabel('Iniciar')
-        .setStyle(ButtonStyle.Danger)
-        .setDisabled(true)
-    );
-
-    await mensagem.edit({
-      components: [rowDesativada]
-    });
-  }
-}
+  // 🔒 evita iniciar 2x
   if (fila.iniciadaExecutada) return;
   fila.iniciadaExecutada = true;
+
+  // 🔄 DESATIVA BOTÕES DA MENSAGEM ORIGINAL
+  const canalFila = await guild.channels.fetch(fila.channelId).catch(() => null);
+
+  if (canalFila) {
+    const mensagem = await canalFila.messages.fetch(fila.messageId).catch(() => null);
+
+    if (mensagem) {
+      const rowDesativada = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`fila_locked_entrar_${id}`)
+          .setLabel('Entrar 🔒')
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(true),
+
+        new ButtonBuilder()
+          .setCustomId(`fila_locked_sair_${id}`)
+          .setLabel('Sair 🔒')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+
+        new ButtonBuilder()
+          .setCustomId(`fila_locked_start_${id}`)
+          .setLabel('Iniciada')
+          .setStyle(ButtonStyle.Danger)
+          .setDisabled(true)
+      );
+
+      await mensagem.edit({
+        components: [rowDesativada]
+      });
+    }
+  }
 
   const jogadores = fila.jogadores;
   const categoria = '1490917601524842528';
@@ -308,19 +312,19 @@ if (canalFila) {
     }))
   ]);
 
-  // 🔊 MOVER PRA CALL
+  // 🔊 MOVE JOGADORES ENTRE AS CALLS
   let toggle = true;
 
   for (const idUser of jogadores) {
     const member = await guild.members.fetch(idUser).catch(() => null);
 
     if (member?.voice.channel) {
-      await member.voice.setChannel(toggle ? call1 : call2);
+      await member.voice.setChannel(toggle ? call1 : call2).catch(() => {});
       toggle = !toggle;
     }
   }
 
-  // 📢 MENSAGEM FINAL
+  // 📩 MENSAGEM NO CHAT
   const embed = new EmbedBuilder()
     .setColor(0x57F287)
     .setTitle(`🔥 Fila ${id}`)
@@ -338,7 +342,10 @@ if (canalFila) {
       .setStyle(ButtonStyle.Danger)
   );
 
-  await chat.send({ embeds: [embed], components: [row] });
+  await chat.send({
+    embeds: [embed],
+    components: [row]
+  });
 }
 
 client.login(process.env.TOKEN);
