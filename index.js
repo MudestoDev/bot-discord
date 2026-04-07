@@ -164,7 +164,7 @@ if (interaction.isModalSubmit()) {
 
   if (interaction.customId === 'modal_fechar_ticket') {
 
-    await interaction.deferReply({ flags: 64 }); // 🔥 ESSENCIAL
+    await interaction.deferReply({ flags: 64 }); // responde rápido
 
     try {
       const motivo = interaction.fields.getTextInputValue('motivo');
@@ -201,6 +201,7 @@ if (interaction.isModalSubmit()) {
         });
       }
 
+      // ✅ CORRETO
       await interaction.editReply({
         content: '🔒 Ticket será fechado...'
       });
