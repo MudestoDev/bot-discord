@@ -23,6 +23,12 @@ const client = new Client({
   ]
 });
 
+const CARGOS_PERMITIDOS = [
+  '1490523988747878401',
+  '1487970426222018592',
+  '1487970427329577021'
+];
+
 const { filas } = require('./commands/fila');
 
 client.commands = new Collection();
@@ -49,6 +55,48 @@ client.on(Events.InteractionCreate, async interaction => {
   // 🔘 BOTÕES
   // =========================
   if (interaction.isButton()) {
+
+          // 🎫 TICKET
+      if (interaction.customId === 'criar_ticket') {
+
+        const guild = interaction.guild;
+        const user = interaction.user;
+
+        const nomeCanal = `ticket-${user.username}`.toLowerCase();
+
+        const canal = await guild.channels.create({
+          name: nomeCanal,
+          type: 0, // texto
+          permissionOverwrites: [
+            {
+              id: guild.id,
+              deny: ['ViewChannel']
+            },
+            {
+              id: user.id,
+              allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+            }
+          ]
+        });
+
+        await canal.send(`🎫 Olá ${user}, descreva seu problema.`);
+
+        return interaction.reply({
+          content: `✅ Ticket criado: ${canal}`,
+          flags: 64
+        });
+      }
+
+      const existente = guild.channels.cache.find(c =>
+        c.name === nomeCanal
+      );
+
+      if (existente) {
+        return interaction.reply({
+          content: '❌ Você já tem um ticket aberto.',
+          flags: 64
+        });
+      }
 
     // 🎮 FILA
     if (interaction.customId && interaction.customId.startsWith('fila_')) {
@@ -184,6 +232,10 @@ if (action === 'end') {
     flags: 64
   });
 }
+
+console.log(
+  `Fila(${id}) - JogadoresID:${fila.jogadores.join(',')} - Finalizada por ${interaction.user.id}`
+);
       // =========================
       // 📊 ATUALIZAR SLOTS
       // =========================
@@ -198,12 +250,12 @@ if (action === 'end') {
       }
 
       const embed = EmbedBuilder.from(interaction.message.embeds[0])
-.setFields([
-  {
-    name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
-    value: lista
-  }
-]);
+      .setFields([
+        {
+          name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
+          value: slots.join('\n')
+        }
+      ]);
 
       await interaction.update({ embeds: [embed] });
 
@@ -285,6 +337,9 @@ async function iniciarFila(guild, fila, id) {
   }
 
   const jogadores = fila.jogadores;
+  console.log(
+  `[FILA] ID:${id} | Jogadores: ${jogadores.join(',')} | START por ${fila.criador}`
+);
   const categoria = '1490917601524842528';
 
   // 📁 CRIA CANAIS
@@ -358,5 +413,8 @@ async function iniciarFila(guild, fila, id) {
     components: [row]
   });
 }
+
+process.on('unhandledRejection', console.error);
+process.on('uncaughtException', console.error);
 
 client.login(process.env.TOKEN);
