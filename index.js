@@ -98,22 +98,36 @@ client.on(Events.InteractionCreate, async interaction => {
 if (action === 'entrar') {
 
   if (fila.jogadores.includes(userId)) {
-    return interaction.reply({
-      content: '❌ Você já está na fila.',
-      flags: 64
-    });
+    return interaction.reply({ content: 'Já está na fila', flags: 64 });
   }
 
   if (fila.jogadores.length >= fila.tamanho) {
-    return interaction.reply({
-      content: '❌ Fila cheia.',
-      flags: 64
-    });
+    return interaction.reply({ content: 'Fila cheia', flags: 64 });
   }
 
   fila.jogadores.push(userId);
-}
 
+  // 👇 ATUALIZA A MENSAGEM
+  let slots = [];
+
+  for (let i = 0; i < fila.tamanho; i++) {
+    if (fila.jogadores[i]) {
+      slots.push(`\`${i + 1}.\` <@${fila.jogadores[i]}>`);
+    } else {
+      slots.push(`\`${i + 1}.\` Vazio`);
+    }
+  }
+
+  const embed = EmbedBuilder.from(interaction.message.embeds[0])
+    .setFields([
+      {
+        name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
+        value: slots.join('\n')
+      }
+    ]);
+
+  return interaction.update({ embeds: [embed] }); // ✅ SÓ ISSO
+}
       // =========================
       // ➖ SAIR
       // =========================

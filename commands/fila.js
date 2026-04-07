@@ -42,12 +42,10 @@ module.exports = {
 
   async execute(interaction) {
 
-    // =========================
-    // 🔒 PERMISSÃO POR CARGO
-    // =========================
+    // 🔒 PERMISSÃO
     if (!interaction.member.roles.cache.some(role => CARGOS_PERMITIDOS.includes(role.id))) {
       return interaction.reply({
-        content: '❌ Você não tem permissão para usar este comando.',
+        content: '❌ Você não tem permissão.',
         flags: 64
       });
     }
@@ -57,9 +55,7 @@ module.exports = {
 
     const tamanho = parseInt(modo.split('v')[0]) * 2;
 
-    // =========================
     // 🔢 ID SEQUENCIAL
-    // =========================
     const idFila = String(contadorData.contador).padStart(3, '0');
 
     contadorData.contador++;
@@ -67,50 +63,30 @@ module.exports = {
 
     fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
 
-    // =========================
-    // 🧠 SALVAR FILA
-    // =========================
-    filas.set(idFila, {
-      jogadores: [],
-      modo,
-      valor,
-      tamanho,
-      criador: interaction.user.id
-    });
+    // 🎯 SLOTS
+    let slots = [];
+    for (let i = 0; i < tamanho; i++) {
+      slots.push(`\`${i + 1}.\` Vazio`);
+    }
 
- // =========================
-// 🎯 SLOTS VISUAIS
-// =========================
-let slots = [];
+    // 🎨 EMBED
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle(`🎮 Fila ${idFila}`)
+      .setDescription(
+        `🎯 **Modo:** ${modo}\n` +
+        `💰 **Valor:** R$${valor}`
+      )
+      .addFields({
+        name: `👥 Jogadores (0/${tamanho})`,
+        value: slots.join('\n')
+      })
+      .setFooter({
+        text: `Criado por ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL()
+      });
 
-for (let i = 0; i < tamanho; i++) {
-  slots.push(`\`${i + 1}.\` Vazio`);
-}
-
-const lista = slots.join('\n');
-
-// =========================
-// 🎨 EMBED
-// =========================
-const embed = new EmbedBuilder()
-  .setColor(0x5865F2)
-  .setTitle(`🎮 Fila ${idFila}`)
-  .setDescription(
-    `🎯 **Modo:** ${modo}\n` +
-    `💰 **Valor:** R$${valor}`
-  )
-  .addFields({
-    name: `👥 Jogadores (0/${tamanho})`,
-    value: lista
-  })
-  .setFooter({
-    text: `Criado por ${interaction.user.username}`,
-    iconURL: interaction.user.displayAvatarURL()
-  });
-
-    // =========================
     // 🔘 BOTÕES
-    // =========================
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`fila_entrar_${idFila}`)
@@ -128,19 +104,29 @@ const embed = new EmbedBuilder()
         .setStyle(ButtonStyle.Danger)
     );
 
-    // =========================
-    // ✅ RESPOSTA (UMA SÓ)
-    // =========================
-        const msg = await interaction.reply({
-        embeds: [embed],
-        components: [row],
-        fetchReply: true
-        });
+    // ✅ RESPONDE NORMAL (SEM fetchReply)
+    await interaction.reply({
+      embeds: [embed],
+      components: [row]
+    });
 
-        filas.get(idFila).messageId = msg.id;
-        filas.get(idFila).channelId = msg.channel.id;
+    // ⏱️ AGUARDA DISCORD CRIAR A MSG
+    const mensagem = await interaction.fetchReply();
+
+    // 🧠 SALVA FILA
+    filas.set(idFila, {
+      jogadores: [],
+      modo,
+      valor,
+      tamanho,
+      criador: interaction.user.id,
+      messageId: mensagem.id,
+      channelId: mensagem.channel.id,
+      iniciada: false
+    });
+
   }
 };
 
-// 🔥 EXPORTA FILAS PRO INDEX
+// 🔥 EXPORTA
 module.exports.filas = filas;
