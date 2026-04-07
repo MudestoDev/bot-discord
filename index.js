@@ -79,6 +79,37 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '❌ Fila não encontrada.', flags: 64 });
       }
 
+      // ==========================
+      // 🔴 CONFIRMAÇÃO FINALIZAR
+      // ==========================
+      if (action === 'confirm') {
+        return interaction.reply({
+          content: '⚠️ Tem certeza que deseja finalizar?',
+          components: [
+            new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`fila_end_${id}`)
+                .setLabel('Confirmar')
+                .setStyle(ButtonStyle.Danger),
+
+              new ButtonBuilder()
+                .setCustomId(`fila_cancel_${id}`)
+                .setLabel('Cancelar')
+                .setStyle(ButtonStyle.Secondary)
+            )
+          ],
+          flags: 64
+        });
+      }
+
+      if (action === 'cancel') {
+        return interaction.update({
+          content: '❌ Cancelado.',
+          components: []
+        });
+      }
+
+
       const userId = interaction.user.id;
 
       if (action === 'entrar') {
@@ -95,14 +126,22 @@ client.on(Events.InteractionCreate, async interaction => {
         fila.jogadores = fila.jogadores.filter(u => u !== userId);
       }
 
-      if (action === 'start') {
-        if (fila.jogadores.length < fila.tamanho)
-          return interaction.reply({ content: 'Fila não está cheia', flags: 64 });
+    if (action === 'start') {
 
-        await interaction.deferUpdate(); // ✅ AGORA FUNCIONA
-        await iniciarFila(interaction, fila, id);
-        return;
+      if (interaction.user.id !== fila.criador) {
+        return interaction.reply({
+          content: '❌ Apenas quem criou a fila pode iniciar.',
+          flags: 64
+        });
       }
+
+      if (fila.jogadores.length < fila.tamanho)
+        return interaction.reply({ content: 'Fila não está cheia', flags: 64 });
+
+      await interaction.deferUpdate();
+      await iniciarFila(interaction, fila, id);
+      return;
+    }
 
       if (action === 'end') {
         const canais = interaction.guild.channels.cache.filter(c =>
@@ -121,7 +160,17 @@ client.on(Events.InteractionCreate, async interaction => {
         });
       }
 
-      const lista = fila.jogadores.map(id => `<@${id}>`).join('\n') || 'Vazio';
+            let slots = [];
+
+      for (let i = 0; i < fila.tamanho; i++) {
+        if (fila.jogadores[i]) {
+          slots.push(`\`${i + 1}.\` <@${fila.jogadores[i]}>`);
+        } else {
+          slots.push(`\`${i + 1}.\` Vazio`);
+        }
+      }
+
+      const lista = slots.join('\n');
 
       const embed = EmbedBuilder.from(interaction.message.embeds[0])
         .setFields({
@@ -170,19 +219,19 @@ async function iniciarFila(interaction, fila, id) {
   const categoria = '1490917601524842528';
 
   const chat = await interaction.guild.channels.create({
-    name: `fila-${id}-chat`,
+    name: `Chat-Fila-${id}`,
     type: ChannelType.GuildText,
     parent: categoria
   });
 
   const call1 = await interaction.guild.channels.create({
-    name: `fila-${id}-call1`,
+    name: `${id}-Time1`,
     type: ChannelType.GuildVoice,
     parent: categoria
   });
 
   const call2 = await interaction.guild.channels.create({
-    name: `fila-${id}-call2`,
+    name: `${id}-Time2`,
     type: ChannelType.GuildVoice,
     parent: categoria
   });
@@ -214,14 +263,19 @@ async function iniciarFila(interaction, fila, id) {
     }
   }
 
-  const embed = new EmbedBuilder()
-    .setColor(0x57F287)
-    .setTitle(`🔥 Fila ${id} iniciada`)
-    .setDescription(jogadores.map(id => `<@${id}>`).join('\n'));
+const embed = new EmbedBuilder()
+  .setColor(0x57F287)
+  .setTitle(`🔥 Fila ${id}`)
+  .setDescription(
+    `🎮 **Modo:** ${fila.modo}\n` +
+    `💰 **Valor:** R$${fila.valor}\n\n` +
+    `👥 **Jogadores:**\n${jogadores.map(id => `<@${id}>`).join('\n')}`
+  )
+  .setFooter({ text: 'Partida iniciada' });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`fila_end_${id}`)
+      .setCustomId(`fila_confirm_${id}`)
       .setLabel('Finalizar')
       .setStyle(ButtonStyle.Danger)
   );

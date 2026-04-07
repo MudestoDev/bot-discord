@@ -6,7 +6,17 @@ const {
   ButtonStyle
 } = require('discord.js');
 
+const fs = require('fs');
+
+let contadorData = JSON.parse(fs.readFileSync('./filaCount.json', 'utf-8'));
+
 const filas = new Map();
+const CARGOS_PERMITIDOS = [
+  '1490523988747878401', // ID do cargo 1
+  '1487970426222018592', // ID do cargo 2
+  '1487970427329577021'  // ID do cargo 3
+];
+let contadorFila = 1;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -29,18 +39,30 @@ module.exports = {
 
   async execute(interaction) {
 
+    if (!interaction.member.roles.cache.some(role => CARGOS_PERMITIDOS.includes(role.id))) {
+  return interaction.reply({
+    content: '❌ Você não tem permissão para usar este comando.',
+    flags: 64
+  });
+}
+
     const modo = interaction.options.getString('modo');
     const valor = interaction.options.getInteger('valor');
 
     const tamanho = parseInt(modo.split('v')[0]) * 2;
 
-    const idFila = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+const idFila = String(contadorData.contador).padStart(3, '0');
+
+contadorData.contador++;
+
+fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
 
     filas.set(idFila, {
       jogadores: [],
       modo,
       valor,
-      tamanho
+      tamanho,
+      criador: interaction.user.id 
     });
 
     const embed = new EmbedBuilder()
