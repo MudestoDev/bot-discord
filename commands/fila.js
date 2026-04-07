@@ -78,32 +78,35 @@ module.exports = {
       criador: interaction.user.id
     });
 
-    // =========================
-    // 🎯 SLOTS VISUAIS
-    // =========================
-    let slots = [];
+ // =========================
+// 🎯 SLOTS VISUAIS
+// =========================
+let slots = [];
 
-    for (let i = 0; i < tamanho; i++) {
-      slots.push(`\`${i + 1}.\` Vazio`);
-    }
+for (let i = 0; i < tamanho; i++) {
+  slots.push(`\`${i + 1}.\` Vazio`);
+}
 
-    const lista = slots.join('\n');
+const lista = slots.join('\n');
 
-    // =========================
-    // 🎨 EMBED
-    // =========================
-    const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle(`🎮 Fila ${idFila}`)
-      .setDescription(
-        `🎯 **Modo:** ${modo}\n` +
-        `💰 **Valor:** R$${valor}\n\n` +
-        `👥 **Jogadores (${0}/${tamanho}):**\n${lista}`
-      )
-      .setFooter({
-        text: `Criado por ${interaction.user.username}`,
-        iconURL: interaction.user.displayAvatarURL()
-      });
+// =========================
+// 🎨 EMBED
+// =========================
+const embed = new EmbedBuilder()
+  .setColor(0x5865F2)
+  .setTitle(`🎮 Fila ${idFila}`)
+  .setDescription(
+    `🎯 **Modo:** ${modo}\n` +
+    `💰 **Valor:** R$${valor}`
+  )
+  .addFields({
+    name: `👥 Jogadores (0/${tamanho})`,
+    value: lista
+  })
+  .setFooter({
+    text: `Criado por ${interaction.user.username}`,
+    iconURL: interaction.user.displayAvatarURL()
+  });
 
     // =========================
     // 🔘 BOTÕES

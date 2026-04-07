@@ -147,22 +147,14 @@ if (action === 'entrar') {
 if (action === 'end') {
 
   const canais = interaction.guild.channels.cache.filter(c =>
-    c.name.startsWith(`Chat-Fila-${id}`) ||
-    c.name.startsWith(`${id}-Call`)
+    c.name.includes(id) // 🔥 pega TODOS que tem o ID
   );
 
-  // ✅ mensagem pública no chat
-  await interaction.channel.send({
-    content: `⚠️ A fila **${id}** foi finalizada.\n🗑️ Os canais serão apagados em 10 segundos...`
-  });
+  // 🔔 avisa no chat antes de apagar
+  await interaction.channel.send(
+    '⚠️ Esta fila será apagada em 10 segundos...'
+  );
 
-  // ✅ resposta privada pra quem clicou
-  await interaction.reply({
-    content: '✅ Fila finalizada com sucesso.',
-    flags: 64
-  });
-
-  // ⏳ delay antes de apagar
   setTimeout(async () => {
 
     for (const canal of canais.values()) {
@@ -173,7 +165,10 @@ if (action === 'end') {
 
   }, 10000);
 
-  return;
+  return interaction.reply({
+    content: '✅ Fila finalizada',
+    flags: 64
+  });
 }
       // =========================
       // 📊 ATUALIZAR SLOTS
@@ -189,10 +184,12 @@ if (action === 'end') {
       }
 
       const embed = EmbedBuilder.from(interaction.message.embeds[0])
-        .setFields({
-          name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
-          value: slots.join('\n')
-        });
+.setFields([
+  {
+    name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
+    value: lista
+  }
+]);
 
       await interaction.update({ embeds: [embed] });
 
