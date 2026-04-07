@@ -22,7 +22,7 @@ const client = new Client({
     GatewayIntentBits.GuildMembers
   ]
 });
-
+const { filas } = require('./commands/fila');
 client.commands = new Collection();
 
 // 📂 Carregar comandos
@@ -191,6 +191,137 @@ client.on(Events.InteractionCreate, async interaction => {
       }, 3000);
     }
   }
+
+  if (interaction.isButton()) {
+
+  if (interaction.customId.startsWith('fila_')) {
+
+    const [_, action, id] = interaction.customId.split('_');
+    const fila = filas.get(id);
+
+    if (!fila) return;
+
+    const userId = interaction.user.id;
+
+    // ENTRAR
+    if (action === 'entrar') {
+      if (fila.jogadores.includes(userId)) return interaction.reply({ content: 'Já está na fila', flags: 64 });
+
+      if (fila.jogadores.length >= fila.tamanho)
+        return interaction.reply({ content: 'Fila cheia', flags: 64 });
+
+      fila.jogadores.push(userId);
+    }
+
+    // SAIR
+    if (action === 'sair') {
+      fila.jogadores = fila.jogadores.filter(u => u !== userId);
+    }
+
+    // START
+    if (action === 'start') {
+      if (fila.jogadores.length < fila.tamanho)
+        return interaction.reply({ content: 'Fila não está cheia', flags: 64 });
+
+      await iniciarFila(interaction, fila, id);
+      return;
+    }
+
+    // UPDATE EMBED
+    const lista = fila.jogadores.map(id => `<@${id}>`).join('\n') || 'Vazio';
+
+    const embed = EmbedBuilder.from(interaction.message.embeds[0])
+      .setFields({ name: 'Jogadores', value: lista });
+
+    await interaction.update({ embeds: [embed] });
+
+    // AUTO START
+    if (fila.jogadores.length === fila.tamanho) {
+      setTimeout(() => iniciarFila(interaction, fila, id), 10000);
+    }
+  }
+}
+
+async function iniciarFila(interaction, fila, id) {
+
+  const jogadores = fila.jogadores;
+
+  const categoria = '1490917601524842528';
+
+  const chat = await interaction.guild.channels.create({
+    name: `fila-${id}-chat`,
+    type: 0,
+    parent: categoria
+  });
+
+  const call1 = await interaction.guild.channels.create({
+    name: `fila-${id}-call1`,
+    type: 2,
+    parent: categoria
+  });
+
+  const call2 = await interaction.guild.channels.create({
+    name: `fila-${id}-call2`,
+    type: 2,
+    parent: categoria
+  });
+
+    // PERMISSÕES
+  await chat.permissionOverwrites.set([
+    {
+      id: interaction.guild.id,
+      deny: ['ViewChannel']
+    },
+    ...jogadores.map(id => ({
+      id,
+      allow: [
+        'ViewChannel',
+        'SendMessages',
+        'AttachFiles',
+        'ReadMessageHistory'
+      ]
+    }))
+  ]);
+
+  // MOVER PRA CALL
+  for (const idUser of time1) {
+    const member = await interaction.guild.members.fetch(idUser).catch(() => null);
+    if (member?.voice.channel) member.voice.setChannel(call1);
+  }
+
+  for (const idUser of time2) {
+    const member = await interaction.guild.members.fetch(idUser).catch(() => null);
+    if (member?.voice.channel) member.voice.setChannel(call2);
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(0x57F287)
+    .setTitle(`🔥 Fila ${id} iniciada`)
+    .setDescription(jogadores.map(id => `<@${id}>`).join('\n'))
+    .setFooter({ text: 'Todos os jogadores liberados nas calls' });
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`fila_end_${id}`)
+      .setLabel('Finalizar')
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await chat.send({ embeds: [embed], components: [row] });
+}
+
+if (interaction.customId.startsWith('fila_end_')) {
+
+  const id = interaction.customId.split('_')[2];
+
+  const canalLog = interaction.guild.channels.cache.get('ID_LOG');
+
+  if (canalLog) {
+    await canalLog.send(`Fila ${id} finalizada`);
+  }
+
+  await interaction.channel.delete();
+}
 
   // =========================
   // 💬 SLASH COMMANDS
