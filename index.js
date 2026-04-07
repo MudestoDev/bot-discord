@@ -399,13 +399,20 @@ async function iniciarFila(guild, fila, id) {
     parent: categoria
   });
 
-  await chat.permissionOverwrites.set([
-    { id: guild.id, deny: ['ViewChannel'] },
-    ...jogadores.map(id => ({
-      id,
-      allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-    }))
-  ]);
+await chat.permissionOverwrites.set([
+  {
+    id: guild.id,
+    deny: ['ViewChannel']
+  },
+  {
+    id: '1490523988747878401', // 👈 CARGO STAFF
+    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+  },
+  ...jogadores.map(id => ({
+    id,
+    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+  }))
+]);
 
 
   const embed = new EmbedBuilder()
