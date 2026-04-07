@@ -222,7 +222,7 @@ if (interaction.customId === 'fechar_ticket') {
  if (action === 'end') {
 
   const member = await interaction.guild.members.fetch(interaction.user.id);
-
+console.log(CARGOS_PERMITIDOS);
   const temPermissao = member.roles.cache.some(role =>
     CARGOS_PERMITIDOS.includes(role.id)
   );
