@@ -157,69 +157,6 @@ if (interaction.customId === 'fechar_ticket') {
   }
 }
 
-// =========================
-// 📝 MODAL (FECHAR TICKET)
-// =========================
-if (interaction.isModalSubmit()) {
-
-  if (interaction.customId === 'modal_fechar_ticket') {
-
-    await interaction.deferReply({ flags: 64 }); // responde rápido
-
-    try {
-      const motivo = interaction.fields.getTextInputValue('motivo');
-
-      const canalLog = interaction.guild.channels.cache.get('1488735992126111804');
-
-      let transcript = 'Sem mensagens';
-
-      try {
-        const mensagens = await interaction.channel.messages.fetch({ limit: 50 });
-
-        transcript = mensagens
-          .map(m => `[${m.author.tag}] ${m.content}`)
-          .reverse()
-          .join('\n') || 'Sem mensagens';
-
-      } catch (err) {
-        console.error('Erro ao pegar mensagens:', err);
-      }
-
-      const embed = new EmbedBuilder()
-        .setColor(0xED4245)
-        .setTitle('📁 Ticket Fechado')
-        .addFields(
-          { name: '👤 Usuário', value: `<@${interaction.user.id}>` },
-          { name: '📝 Motivo', value: motivo }
-        )
-        .setTimestamp();
-
-      if (canalLog) {
-        await canalLog.send({
-          embeds: [embed],
-          content: `\`\`\`\n${transcript}\n\`\`\``
-        });
-      }
-
-      // ✅ CORRETO
-      await interaction.editReply({
-        content: '🔒 Ticket será fechado...'
-      });
-
-      setTimeout(() => {
-        interaction.channel.delete().catch(console.error);
-      }, 3000);
-
-    } catch (err) {
-      console.error('ERRO NO MODAL:', err);
-
-      await interaction.editReply({
-        content: '❌ Erro ao fechar ticket.'
-      });
-    }
-  }
-}
-
     // =========================
     // 🎮 FILA
     // =========================
@@ -345,7 +282,67 @@ if (interaction.isModalSubmit()) {
       }
     }
   }
+// =========================
+// 📝 MODAL (FECHAR TICKET)
+// =========================
+if (interaction.isModalSubmit()) {
 
+  if (interaction.customId === 'modal_fechar_ticket') {
+
+    await interaction.deferReply({ flags: 64 });
+
+    try {
+      const motivo = interaction.fields.getTextInputValue('motivo');
+
+      const canalLog = interaction.guild.channels.cache.get('1488735992126111804');
+
+      let transcript = 'Sem mensagens';
+
+      try {
+        const mensagens = await interaction.channel.messages.fetch({ limit: 50 });
+
+        transcript = mensagens
+          .map(m => `[${m.author.tag}] ${m.content}`)
+          .reverse()
+          .join('\n') || 'Sem mensagens';
+
+      } catch (err) {
+        console.error('Erro ao pegar mensagens:', err);
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xED4245)
+        .setTitle('📁 Ticket Fechado')
+        .addFields(
+          { name: '👤 Usuário', value: `<@${interaction.user.id}>` },
+          { name: '📝 Motivo', value: motivo }
+        )
+        .setTimestamp();
+
+      if (canalLog) {
+        await canalLog.send({
+          embeds: [embed],
+          content: `\`\`\`\n${transcript}\n\`\`\``
+        });
+      }
+
+      await interaction.editReply({
+        content: '🔒 Ticket será fechado...'
+      });
+
+      setTimeout(() => {
+        interaction.channel.delete().catch(console.error);
+      }, 3000);
+
+    } catch (err) {
+      console.error('ERRO NO MODAL:', err);
+
+      await interaction.editReply({
+        content: '❌ Erro ao fechar ticket.'
+      });
+    }
+  }
+}
   // =========================
   // 💬 SLASH COMMANDS
   // =========================
