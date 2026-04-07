@@ -48,48 +48,150 @@ client.on(Events.InteractionCreate, async interaction => {
   // =========================
   if (interaction.isButton()) {
 
-    // =========================
-    // 🎫 TICKET
-    // =========================
-    if (interaction.customId === 'criar_ticket') {
+// =========================
+// 🎫 CRIAR TICKET
+// =========================
+if (interaction.customId === 'criar_ticket') {
 
-      const guild = interaction.guild;
-      const user = interaction.user;
+  const nomeCanal = `ticket-${interaction.user.username}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '');
 
-      const nomeCanal = `ticket-${user.id}`;
+  const existente = interaction.guild.channels.cache.find(c => c.name === nomeCanal);
+  if (existente) {
+    return interaction.reply({
+      content: '❌ Você já tem um ticket aberto.',
+      flags: 64
+    });
+  }
 
-      // ❌ evita duplicado
-      const existente = guild.channels.cache.find(c => c.name === nomeCanal);
+  try {
 
-      if (existente) {
-        return interaction.reply({
-          content: '❌ Você já tem um ticket aberto.',
-          flags: 64
-        });
-      }
+    const categoriaId = interaction.channel.parentId ?? '1487970461466759248';
 
-      const canal = await guild.channels.create({
-        name: nomeCanal,
-        type: ChannelType.GuildText,
-        permissionOverwrites: [
-          {
-            id: guild.id,
-            deny: ['ViewChannel']
-          },
-          {
-            id: user.id,
-            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-          }
+    const canal = await interaction.guild.channels.create({
+      name: nomeCanal,
+      type: ChannelType.GuildText
+    });
+
+    await canal.setParent(categoriaId, { lockPermissions: false });
+
+    await canal.permissionOverwrites.set([
+      {
+        id: interaction.guild.id,
+        deny: ['ViewChannel']
+      },
+      {
+        id: interaction.user.id,
+        allow: [
+          'ViewChannel',
+          'SendMessages',
+          'AttachFiles',
+          'EmbedLinks',
+          'ReadMessageHistory'
         ]
-      });
+      }
+    ]);
 
-      await canal.send(`🎫 Olá ${user}, descreva seu problema.`);
+    const embed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle('🎫 Ticket criado')
+      .setDescription(`Olá <@${interaction.user.id}>, aguarde atendimento.`)
+      .setTimestamp();
 
-      return interaction.reply({
-        content: `✅ Ticket criado: ${canal}`,
-        flags: 64
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('fechar_ticket')
+        .setLabel('Fechar Ticket')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🔒')
+    );
+
+    await canal.send({
+      embeds: [embed],
+      components: [row]
+    });
+
+    return interaction.reply({
+      content: `✅ Ticket criado: ${canal}`,
+      flags: 64
+    });
+
+  } catch (err) {
+    console.error('ERRO AO CRIAR TICKET:', err);
+
+    return interaction.reply({
+      content: '❌ Erro ao criar ticket.',
+      flags: 64
+    });
+  }
+}
+
+// =========================
+// 🔒 BOTÃO FECHAR
+// =========================
+if (interaction.customId === 'fechar_ticket') {
+
+  const modal = new ModalBuilder()
+    .setCustomId('modal_fechar_ticket')
+    .setTitle('Fechar Ticket');
+
+  const motivo = new TextInputBuilder()
+    .setCustomId('motivo')
+    .setLabel('Motivo do fechamento')
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true);
+
+  const row = new ActionRowBuilder().addComponents(motivo);
+  modal.addComponents(row);
+
+  return interaction.showModal(modal);
+}
+
+// =========================
+// 📝 MODAL (FECHAR TICKET)
+// =========================
+if (interaction.isModalSubmit()) {
+
+  if (interaction.customId === 'modal_fechar_ticket') {
+
+    const motivo = interaction.fields.getTextInputValue('motivo');
+
+    const canalLog = interaction.guild.channels.cache.get('1488735992126111804');
+
+    const mensagens = await interaction.channel.messages.fetch({ limit: 100 });
+
+    const transcript = mensagens
+      .map(m => `[${m.author.tag}] ${m.content}`)
+      .reverse()
+      .join('\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0xED4245)
+      .setTitle('📁 Ticket Fechado')
+      .addFields(
+        { name: '👤 Usuário', value: `<@${interaction.user.id}>` },
+        { name: '📝 Motivo', value: motivo }
+      )
+      .setTimestamp();
+
+    if (canalLog) {
+      await canalLog.send({
+        embeds: [embed],
+        content: `\`\`\`\n${transcript || 'Sem mensagens'}\n\`\`\``
       });
     }
+
+    await interaction.reply({
+      content: '🔒 Ticket será fechado...',
+      flags: 64
+    });
+
+    setTimeout(() => {
+      interaction.channel.delete().catch(() => {});
+    }, 3000);
+  }
+}
 
     // =========================
     // 🎮 FILA
@@ -147,30 +249,45 @@ client.on(Events.InteractionCreate, async interaction => {
       }
 
       // 🛑 FINALIZAR
-      if (action === 'end') {
+ if (action === 'end') {
 
-        console.log(
-          `Fila(${id}) - JogadoresID:${fila.jogadores.join(',')} - Finalizada por ${interaction.user.id}`
-        );
+  const member = await interaction.guild.members.fetch(interaction.user.id);
 
-        const canais = interaction.guild.channels.cache.filter(c =>
-          c.name.includes(id)
-        );
+  const temPermissao = member.roles.cache.some(role =>
+    CARGOS_PERMITIDOS.includes(role.id)
+  );
 
-        await interaction.channel.send('⚠️ Esta fila será apagada em 10 segundos...');
+  const ehCriador = interaction.user.id === fila.criador;
 
-        setTimeout(async () => {
-          for (const canal of canais.values()) {
-            await canal.delete().catch(() => {});
-          }
-          filas.delete(id);
-        }, 10000);
+  if (!temPermissao && !ehCriador) {
+    return interaction.reply({
+      content: '❌ Apenas quem criou a fila ou staff pode finalizar.',
+      flags: 64
+    });
+  }
 
-        return interaction.reply({
-          content: '✅ Fila finalizada',
-          flags: 64
-        });
-      }
+  console.log(
+    `Fila(${id}) - JogadoresID:${fila.jogadores.join(',')} - Finalizada por ${interaction.user.id}`
+  );
+
+  const canais = interaction.guild.channels.cache.filter(c =>
+    c.name.includes(id)
+  );
+
+  await interaction.channel.send('⚠️ Esta fila será apagada em 10 segundos...');
+
+  setTimeout(async () => {
+    for (const canal of canais.values()) {
+      await canal.delete().catch(() => {});
+    }
+    filas.delete(id);
+  }, 10000);
+
+  return interaction.reply({
+    content: '✅ Fila finalizada',
+    flags: 64
+  });
+}
 
       // 📊 ATUALIZA EMBED
       let slots = [];
@@ -266,16 +383,6 @@ async function iniciarFila(guild, fila, id) {
     }))
   ]);
 
-  let toggle = true;
-
-  for (const idUser of jogadores) {
-    const member = await guild.members.fetch(idUser).catch(() => null);
-
-    if (member?.voice.channel) {
-      await member.voice.setChannel(toggle ? call1 : call2).catch(() => {});
-      toggle = !toggle;
-    }
-  }
 
   const embed = new EmbedBuilder()
     .setColor(0x57F287)
