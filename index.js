@@ -40,34 +40,15 @@ client.once(Events.ClientReady, () => {
   console.log(`✅ Bot online como ${client.user.tag}`);
 });
 
+// =========================
+// 🚀 INTERAÇÕES
+// =========================
 client.on(Events.InteractionCreate, async interaction => {
 
   // =========================
-  // BOTÕES
+  // 🔘 BOTÕES
   // =========================
   if (interaction.isButton()) {
-
-    // 🎫 TICKET
-    if (interaction.customId === 'criar_ticket') {
-      // seu código
-    }
-
-    if (interaction.customId === 'fechar_ticket') {
-      const modal = new ModalBuilder()
-        .setCustomId('modal_fechar_ticket')
-        .setTitle('Fechar Ticket');
-
-      const motivo = new TextInputBuilder()
-        .setCustomId('motivo')
-        .setLabel('Motivo do fechamento')
-        .setStyle(TextInputStyle.Paragraph)
-        .setRequired(true);
-
-      const row = new ActionRowBuilder().addComponents(motivo);
-      modal.addComponents(row);
-
-      return interaction.showModal(modal);
-    }
 
     // 🎮 FILA
     if (interaction.customId && interaction.customId.startsWith('fila_')) {
@@ -79,9 +60,11 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '❌ Fila não encontrada.', flags: 64 });
       }
 
-      // ==========================
-      // 🔴 CONFIRMAÇÃO FINALIZAR
-      // ==========================
+      const userId = interaction.user.id;
+
+      // =========================
+      // 🔴 CONFIRMAR FINALIZAÇÃO
+      // =========================
       if (action === 'confirm') {
         return interaction.reply({
           content: '⚠️ Tem certeza que deseja finalizar?',
@@ -109,9 +92,9 @@ client.on(Events.InteractionCreate, async interaction => {
         });
       }
 
-
-      const userId = interaction.user.id;
-
+      // =========================
+      // ➕ ENTRAR
+      // =========================
       if (action === 'entrar') {
         if (fila.jogadores.includes(userId))
           return interaction.reply({ content: 'Já está na fila', flags: 64 });
@@ -122,30 +105,40 @@ client.on(Events.InteractionCreate, async interaction => {
         fila.jogadores.push(userId);
       }
 
+      // =========================
+      // ➖ SAIR
+      // =========================
       if (action === 'sair') {
         fila.jogadores = fila.jogadores.filter(u => u !== userId);
       }
 
-    if (action === 'start') {
+      // =========================
+      // ▶ START (APENAS CRIADOR)
+      // =========================
+      if (action === 'start') {
 
-      if (interaction.user.id !== fila.criador) {
-        return interaction.reply({
-          content: '❌ Apenas quem criou a fila pode iniciar.',
-          flags: 64
-        });
+        if (interaction.user.id !== fila.criador) {
+          return interaction.reply({
+            content: '❌ Apenas quem criou a fila pode iniciar.',
+            flags: 64
+          });
+        }
+
+        if (fila.jogadores.length < fila.tamanho)
+          return interaction.reply({ content: 'Fila não está cheia', flags: 64 });
+
+        await interaction.deferUpdate();
+        await iniciarFila(interaction.guild, fila, id);
+        return;
       }
 
-      if (fila.jogadores.length < fila.tamanho)
-        return interaction.reply({ content: 'Fila não está cheia', flags: 64 });
-
-      await interaction.deferUpdate();
-      await iniciarFila(interaction, fila, id);
-      return;
-    }
-
+      // =========================
+      // 🛑 FINALIZAR
+      // =========================
       if (action === 'end') {
+
         const canais = interaction.guild.channels.cache.filter(c =>
-          c.name.startsWith(`fila-${id}`)
+          c.name.startsWith(`fila-${id}`) || c.name.startsWith(`Chat-Fila-${id}`)
         );
 
         for (const canal of canais.values()) {
@@ -160,7 +153,10 @@ client.on(Events.InteractionCreate, async interaction => {
         });
       }
 
-            let slots = [];
+      // =========================
+      // 📊 ATUALIZAR SLOTS
+      // =========================
+      let slots = [];
 
       for (let i = 0; i < fila.tamanho; i++) {
         if (fila.jogadores[i]) {
@@ -170,26 +166,29 @@ client.on(Events.InteractionCreate, async interaction => {
         }
       }
 
-      const lista = slots.join('\n');
-
       const embed = EmbedBuilder.from(interaction.message.embeds[0])
         .setFields({
           name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
-          value: lista
+          value: slots.join('\n')
         });
 
       await interaction.update({ embeds: [embed] });
 
-      if (fila.jogadores.length === fila.tamanho) {
+      // =========================
+      // ⏱ AUTO START
+      // =========================
+      if (fila.jogadores.length === fila.tamanho && !fila.iniciada) {
+        fila.iniciada = true;
+
         setTimeout(() => {
-          iniciarFila(interaction, fila, id).catch(console.error);
+          iniciarFila(interaction.guild, fila, id).catch(console.error);
         }, 10000);
       }
     }
   }
 
   // =========================
-  // SLASH COMMANDS
+  // 💬 SLASH COMMANDS
   // =========================
   if (!interaction.isChatInputCommand()) return;
 
@@ -211,34 +210,39 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 // =========================
-// 🚀 FUNÇÃO FILA
+// 🚀 FUNÇÃO INICIAR FILA
 // =========================
-async function iniciarFila(interaction, fila, id) {
+async function iniciarFila(guild, fila, id) {
+
+  if (fila.iniciadaExecutada) return;
+  fila.iniciadaExecutada = true;
 
   const jogadores = fila.jogadores;
   const categoria = '1490917601524842528';
 
-  const chat = await interaction.guild.channels.create({
+  // 📁 CRIA CANAIS
+  const chat = await guild.channels.create({
     name: `Chat-Fila-${id}`,
     type: ChannelType.GuildText,
     parent: categoria
   });
 
-  const call1 = await interaction.guild.channels.create({
-    name: `${id}-Time1`,
+  const call1 = await guild.channels.create({
+    name: `${id}-Call-1`,
     type: ChannelType.GuildVoice,
     parent: categoria
   });
 
-  const call2 = await interaction.guild.channels.create({
-    name: `${id}-Time2`,
+  const call2 = await guild.channels.create({
+    name: `${id}-Call-2`,
     type: ChannelType.GuildVoice,
     parent: categoria
   });
 
+  // 🔐 PERMISSÕES
   await chat.permissionOverwrites.set([
     {
-      id: interaction.guild.id,
+      id: guild.id,
       deny: ['ViewChannel']
     },
     ...jogadores.map(id => ({
@@ -252,10 +256,11 @@ async function iniciarFila(interaction, fila, id) {
     }))
   ]);
 
+  // 🔊 MOVER PRA CALL
   let toggle = true;
 
   for (const idUser of jogadores) {
-    const member = await interaction.guild.members.fetch(idUser).catch(() => null);
+    const member = await guild.members.fetch(idUser).catch(() => null);
 
     if (member?.voice.channel) {
       await member.voice.setChannel(toggle ? call1 : call2);
@@ -263,15 +268,16 @@ async function iniciarFila(interaction, fila, id) {
     }
   }
 
-const embed = new EmbedBuilder()
-  .setColor(0x57F287)
-  .setTitle(`🔥 Fila ${id}`)
-  .setDescription(
-    `🎮 **Modo:** ${fila.modo}\n` +
-    `💰 **Valor:** R$${fila.valor}\n\n` +
-    `👥 **Jogadores:**\n${jogadores.map(id => `<@${id}>`).join('\n')}`
-  )
-  .setFooter({ text: 'Partida iniciada' });
+  // 📢 MENSAGEM FINAL
+  const embed = new EmbedBuilder()
+    .setColor(0x57F287)
+    .setTitle(`🔥 Fila ${id}`)
+    .setDescription(
+      `🎮 **Modo:** ${fila.modo}\n` +
+      `💰 **Valor:** R$${fila.valor}\n\n` +
+      `👥 **Jogadores:**\n${jogadores.map(id => `<@${id}>`).join('\n')}`
+    )
+    .setFooter({ text: 'Partida iniciada' });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()

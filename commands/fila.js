@@ -8,15 +8,18 @@ const {
 
 const fs = require('fs');
 
+// 📂 CONTADOR PERSISTENTE
 let contadorData = JSON.parse(fs.readFileSync('./filaCount.json', 'utf-8'));
 
+// 🧠 FILAS EM MEMÓRIA
 const filas = new Map();
+
+// 🔒 CARGOS PERMITIDOS
 const CARGOS_PERMITIDOS = [
-  '1490523988747878401', // ID do cargo 1
-  '1487970426222018592', // ID do cargo 2
-  '1487970427329577021'  // ID do cargo 3
+  '1490523988747878401',
+  '1487970426222018592',
+  '1487970427329577021'
 ];
-let contadorFila = 1;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -27,10 +30,10 @@ module.exports = {
         .setDescription('Modo da fila')
         .setRequired(true)
         .addChoices(
-        { name: '1v1', value: '1v1' }, // 👈 NOVO
-        { name: '2v2', value: '2v2' },
-        { name: '3v3', value: '3v3' },
-        { name: '4v4', value: '4v4' }
+          { name: '1v1', value: '1v1' },
+          { name: '2v2', value: '2v2' },
+          { name: '3v3', value: '3v3' },
+          { name: '4v4', value: '4v4' }
         ))
     .addIntegerOption(opt =>
       opt.setName('valor')
@@ -39,41 +42,72 @@ module.exports = {
 
   async execute(interaction) {
 
+    // =========================
+    // 🔒 PERMISSÃO POR CARGO
+    // =========================
     if (!interaction.member.roles.cache.some(role => CARGOS_PERMITIDOS.includes(role.id))) {
-  return interaction.reply({
-    content: '❌ Você não tem permissão para usar este comando.',
-    flags: 64
-  });
-}
+      return interaction.reply({
+        content: '❌ Você não tem permissão para usar este comando.',
+        flags: 64
+      });
+    }
 
     const modo = interaction.options.getString('modo');
     const valor = interaction.options.getInteger('valor');
 
     const tamanho = parseInt(modo.split('v')[0]) * 2;
 
-const idFila = String(contadorData.contador).padStart(3, '0');
+    // =========================
+    // 🔢 ID SEQUENCIAL
+    // =========================
+    const idFila = String(contadorData.contador).padStart(3, '0');
 
-contadorData.contador++;
+    contadorData.contador++;
+    if (contadorData.contador > 999) contadorData.contador = 1;
 
-fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
+    fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
 
+    // =========================
+    // 🧠 SALVAR FILA
+    // =========================
     filas.set(idFila, {
       jogadores: [],
       modo,
       valor,
       tamanho,
-      criador: interaction.user.id 
+      criador: interaction.user.id
     });
 
+    // =========================
+    // 🎯 SLOTS VISUAIS
+    // =========================
+    let slots = [];
+
+    for (let i = 0; i < tamanho; i++) {
+      slots.push(`\`${i + 1}.\` Vazio`);
+    }
+
+    const lista = slots.join('\n');
+
+    // =========================
+    // 🎨 EMBED
+    // =========================
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle(`🎮 Fila ${idFila} - ${modo}`)
-      .setDescription(`Valor: R$${valor}`)
-      .addFields({
-        name: 'Jogadores',
-        value: 'Vazio'
+      .setTitle(`🎮 Fila ${idFila}`)
+      .setDescription(
+        `🎯 **Modo:** ${modo}\n` +
+        `💰 **Valor:** R$${valor}\n\n` +
+        `👥 **Jogadores (${0}/${tamanho}):**\n${lista}`
+      )
+      .setFooter({
+        text: `Criado por ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL()
       });
 
+    // =========================
+    // 🔘 BOTÕES
+    // =========================
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`fila_entrar_${idFila}`)
@@ -91,11 +125,15 @@ fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
         .setStyle(ButtonStyle.Danger)
     );
 
-    await interaction.reply({
+    // =========================
+    // ✅ RESPOSTA (UMA SÓ)
+    // =========================
+    return interaction.reply({
       embeds: [embed],
       components: [row]
     });
   }
 };
 
+// 🔥 EXPORTA FILAS PRO INDEX
 module.exports.filas = filas;
