@@ -7,7 +7,10 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ChannelType
+  ChannelType,
+   ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } = require('discord.js');
 
 const fs = require('fs');
