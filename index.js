@@ -24,6 +24,12 @@ const client = new Client({
   ]
 });
 
+const CARGOS_PERMITIDOS = [
+  '1490523988747878401',
+  '1487970426222018592',
+  '1487970427329577021'
+];
+
 const { filas } = require('./commands/fila');
 
 client.commands = new Collection();
@@ -365,9 +371,6 @@ if (interaction.isModalSubmit()) {
 
 });
 
-// =========================
-// 🚀 INICIAR FILA
-// =========================
 async function iniciarFila(guild, fila, id) {
 
   if (fila.iniciadaExecutada) return;
@@ -379,6 +382,44 @@ async function iniciarFila(guild, fila, id) {
     `Fila(${id}) - JogadoresID:${jogadores.join(',')} - Iniciada por ${fila.criador}`
   );
 
+  // =========================
+  // 🔒 DESATIVAR BOTÕES DA FILA ORIGINAL
+  // =========================
+  const canalFila = await guild.channels.fetch(fila.channelId).catch(() => null);
+
+  if (canalFila) {
+    const mensagem = await canalFila.messages.fetch(fila.messageId).catch(() => null);
+
+    if (mensagem) {
+      const rowDesativada = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`fila_locked_entrar_${id}`)
+          .setLabel('Entrar 🔒')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+
+        new ButtonBuilder()
+          .setCustomId(`fila_locked_sair_${id}`)
+          .setLabel('Sair 🔒')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+
+        new ButtonBuilder()
+          .setCustomId(`fila_locked_start_${id}`)
+          .setLabel('Iniciada 🔒')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+
+      await mensagem.edit({
+        components: [rowDesativada]
+      }).catch(console.error);
+    }
+  }
+
+  // =========================
+  // 📁 CRIAR CANAIS
+  // =========================
   const categoria = '1490917601524842528';
 
   const chat = await guild.channels.create({
@@ -399,22 +440,27 @@ async function iniciarFila(guild, fila, id) {
     parent: categoria
   });
 
-await chat.permissionOverwrites.set([
-  {
-    id: guild.id,
-    deny: ['ViewChannel']
-  },
-  {
-    id: '1490523988747878401', // 👈 CARGO STAFF
-    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-  },
-  ...jogadores.map(id => ({
-    id,
-    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-  }))
-]);
+  // =========================
+  // 🔐 PERMISSÕES
+  // =========================
+  await chat.permissionOverwrites.set([
+    {
+      id: guild.id,
+      deny: ['ViewChannel']
+    },
+    {
+      id: '1490523988747878401', // 👈 STAFF
+      allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+    },
+    ...jogadores.map(id => ({
+      id,
+      allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+    }))
+  ]);
 
-
+  // =========================
+  // 📩 MENSAGEM DO CHAT
+  // =========================
   const embed = new EmbedBuilder()
     .setColor(0x57F287)
     .setTitle(`🔥 Fila ${id}`)
