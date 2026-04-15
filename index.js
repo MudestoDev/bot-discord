@@ -457,6 +457,14 @@ const permissoesCall = [
     id: '1490523988747878401', // 👈 STAFF
     allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
   },
+    {
+    id: '1494092806937907371', // 👈 STAFF
+    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
+  },
+    {
+    id: '1487970442760425552', // 👈 STAFF
+    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
+  },
   ...jogadores.map(id => ({
     id,
     allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
