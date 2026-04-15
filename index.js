@@ -446,6 +446,28 @@ if (fila.tipo === 'masc') {
   });
 
   // =========================
+// 🔐 PERMISSÕES NAS CALLS
+// =========================
+const permissoesCall = [
+  {
+    id: guild.id,
+    deny: ['ViewChannel']
+  },
+  {
+    id: '1490523988747878401', // 👈 STAFF
+    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
+  },
+  ...jogadores.map(id => ({
+    id,
+    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
+  }))
+];
+
+// aplica nas duas calls
+await call1.permissionOverwrites.set(permissoesCall);
+await call2.permissionOverwrites.set(permissoesCall);
+
+  // =========================
   // 🔐 PERMISSÕES
   // =========================
   await chat.permissionOverwrites.set([
