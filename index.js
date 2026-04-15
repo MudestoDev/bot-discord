@@ -420,7 +420,12 @@ async function iniciarFila(guild, fila, id) {
   // =========================
   // 📁 CRIAR CANAIS
   // =========================
-  const categoria = '1490917601524842528';
+
+  let categoria = '1490917601524842528'; // padrão
+
+if (fila.tipo === 'masc') {
+  categoria = '1492266829513490623';
+}
 
   const chat = await guild.channels.create({
     name: `Chat-Fila-${id}`,
