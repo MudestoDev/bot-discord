@@ -42,9 +42,12 @@ module.exports = {
 
     fs.writeFileSync(caminho, JSON.stringify(ranking, null, 2));
 
-    return interaction.reply({
-      content: `🏆 Vitória registrada para: ${jogadores.map(j => `<@${j.id}>`).join(', ')}`,
-      flags: 64
-    });
-  }
-};
+const embed = new EmbedBuilder()
+  .setColor(0x57F287)
+  .setTitle('🏆 Vitória Registrada')
+  .setDescription(`Vitória adicionada para:\n${jogadores.map(j => `<@${j.id}>`).join('\n')}`)
+  .setTimestamp();
+
+return interaction.reply({
+  embeds: [embed]
+})}}

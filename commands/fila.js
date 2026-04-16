@@ -113,20 +113,30 @@ module.exports = {
     // ⏱️ AGUARDA DISCORD CRIAR A MSG
     const mensagem = await interaction.fetchReply();
 
-    // 🧠 SALVA FILA
-    filas.set(idFila, {
-      jogadores: [],
-      modo,
-      valor,
-      tamanho,
-      criador: interaction.user.id,
-      messageId: mensagem.id,
-      channelId: mensagem.channel.id,
-      iniciada: false
-    });
+const caminho = './filas.json';
 
-  }
+// lê existente
+let data = {};
+if (fs.existsSync(caminho)) {
+  data = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
+}
+
+// salva fila no JSON
+data[idFila] = {
+  jogadores: [],
+  modo,
+  valor,
+  tamanho,
+  criador: interaction.user.id,
+  messageId: mensagem.id,
+  channelId: mensagem.channel.id,
+  iniciada: false,
+  tipo: 'normal'
 };
 
-// 🔥 EXPORTA
+fs.writeFileSync(caminho, JSON.stringify(data, null, 2));
+
+// 🧠 SALVA TAMBÉM NA MEMÓRIA
+filas.set(idFila, data[idFila])
 module.exports.filas = filas;
+}}

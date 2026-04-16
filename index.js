@@ -30,7 +30,20 @@ const CARGOS_PERMITIDOS = [
   '1487970427329577021'
 ];
 
+const fs = require('fs');
 const { filas } = require('./commands/fila');
+
+const caminhoFilas = './filas.json';
+
+if (fs.existsSync(caminhoFilas)) {
+  const data = JSON.parse(fs.readFileSync(caminhoFilas, 'utf-8'));
+
+  for (const id in data) {
+    filas.set(id, data[id]);
+  }
+
+  console.log(`✅ ${Object.keys(data).length} filas carregadas do JSON`);
+}
 
 client.commands = new Collection();
 
@@ -353,6 +366,23 @@ if (interaction.isModalSubmit()) {
   // 💬 SLASH COMMANDS
   // =========================
   if (!interaction.isChatInputCommand()) return;
+
+// 🔒 PERMISSÃO GLOBAL
+const member = await interaction.guild.members.fetch(interaction.user.id);
+
+const temPermissao = member.roles.cache.some(role =>
+  CARGOS_PERMITIDOS.includes(role.id)
+);
+
+// 🔓 comandos liberados (opcional)
+const comandosLiberados = ['ranking'];
+
+if (!temPermissao && !comandosLiberados.includes(interaction.commandName)) {
+  return interaction.reply({
+    content: '❌ Você não tem permissão para usar este comando.',
+    flags: 64
+  });
+}
 
   const command = client.commands.get(interaction.commandName);
   if (!command) return;
