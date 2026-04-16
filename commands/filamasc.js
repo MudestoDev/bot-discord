@@ -7,12 +7,14 @@ const {
 } = require('discord.js');
 
 const fs = require('fs');
+
+// 📂 CONTADOR
 let contadorData = JSON.parse(fs.readFileSync('./filaCount.json', 'utf-8'));
 
+// 🧠 IMPORTA O MESMO MAP (NÃO CRIAR NOVO!)
 const { filas } = require('./fila');
-const filas = new Map();
-module.exports.filas = filas;
 
+// 🔒 PERMISSÃO
 const CARGOS_PERMITIDOS = [
   '1490523988747878401',
   '1487970426222018592',
@@ -40,6 +42,7 @@ module.exports = {
 
   async execute(interaction) {
 
+    // 🔒 PERMISSÃO
     if (!interaction.member.roles.cache.some(role => CARGOS_PERMITIDOS.includes(role.id))) {
       return interaction.reply({
         content: '❌ Você não tem permissão.',
@@ -52,6 +55,7 @@ module.exports = {
 
     const tamanho = parseInt(modo.split('v')[0]) * 2;
 
+    // 🔢 ID
     const idFila = String(contadorData.contador).padStart(3, '0');
 
     contadorData.contador++;
@@ -59,11 +63,10 @@ module.exports = {
 
     fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
 
-    let slots = [];
-    for (let i = 0; i < tamanho; i++) {
-      slots.push(`\`${i + 1}.\` Vazio`);
-    }
+    // 🎯 SLOTS
+    const slots = Array.from({ length: tamanho }, (_, i) => `\`${i + 1}.\` Vazio`);
 
+    // 🎨 EMBED
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
       .setTitle(`🔥 Fila Masculina ${idFila}`)
@@ -74,8 +77,13 @@ module.exports = {
       .addFields({
         name: `👥 Jogadores (0/${tamanho})`,
         value: slots.join('\n')
+      })
+      .setFooter({
+        text: `Criado por ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL()
       });
 
+    // 🔘 BOTÕES
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`fila_entrar_${idFila}`)
@@ -93,6 +101,7 @@ module.exports = {
         .setStyle(ButtonStyle.Danger)
     );
 
+    // 📩 ENVIA
     await interaction.reply({
       embeds: [embed],
       components: [row]
@@ -100,6 +109,7 @@ module.exports = {
 
     const mensagem = await interaction.fetchReply();
 
+    // 🧠 SALVA NA MEMÓRIA (MAP COMPARTILHADO)
     filas.set(idFila, {
       jogadores: [],
       modo,
@@ -109,7 +119,19 @@ module.exports = {
       messageId: mensagem.id,
       channelId: mensagem.channel.id,
       iniciada: false,
-      tipo: 'masc' // 👈 DIFERENCIAL
+      tipo: 'masc'
     });
+
+    // 💾 SALVA NO JSON (PERSISTÊNCIA)
+    const caminho = './filas.json';
+
+    let data = {};
+    if (fs.existsSync(caminho)) {
+      data = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
+    }
+
+    data[idFila] = filas.get(idFila);
+
+    fs.writeFileSync(caminho, JSON.stringify(data, null, 2));
   }
 };
