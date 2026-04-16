@@ -10,6 +10,8 @@ const fs = require('fs');
 let contadorData = JSON.parse(fs.readFileSync('./filaCount.json', 'utf-8'));
 
 const { filas } = require('./fila');
+const filas = new Map();
+module.exports.filas = filas;
 
 const CARGOS_PERMITIDOS = [
   '1490523988747878401',
