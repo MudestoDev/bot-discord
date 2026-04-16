@@ -1,52 +1,32 @@
-const {
-  SlashCommandBuilder,
-  EmbedBuilder
-} = require('discord.js');
-
-const fs = require('fs');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const pool = require('../database');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('ranking')
-    .setDescription('Ver ranking de vitórias'),
+    .setDescription('Ver ranking'),
 
   async execute(interaction) {
 
-    const caminho = './ranking.json';
+    const res = await pool.query(`
+      SELECT * FROM ranking
+      ORDER BY wins DESC
+      LIMIT 10
+    `);
 
-    if (!fs.existsSync(caminho)) {
-      return interaction.reply({
-        content: '❌ Nenhum ranking encontrado.',
-        flags: 64
-      });
+    if (res.rows.length === 0) {
+      return interaction.reply('❌ Ranking vazio.');
     }
 
-    const ranking = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
-
-    if (Object.keys(ranking).length === 0) {
-      return interaction.reply({
-        content: '❌ Ranking vazio.',
-        flags: 64
-      });
-    }
-
-    // ordenar ranking
-    const top = Object.entries(ranking)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-
-    const lista = top.map(([id, vitorias], i) =>
-      `**#${i + 1}** <@${id}> - 🏆 ${vitorias}`
+    const lista = res.rows.map((r, i) =>
+      `**#${i + 1}** <@${r.user_id}> - 🏆 ${r.wins}`
     ).join('\n');
 
     const embed = new EmbedBuilder()
       .setColor(0xF1C40F)
-      .setTitle('🏆 Ranking de Vitórias')
-      .setDescription(lista)
-      .setTimestamp();
+      .setTitle('🏆 Ranking')
+      .setDescription(lista);
 
-    return interaction.reply({
-      embeds: [embed]
-    });
+    return interaction.reply({ embeds: [embed] });
   }
 };

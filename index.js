@@ -46,6 +46,19 @@ if (fs.existsSync(caminhoFilas)) {
 
 client.commands = new Collection();
 
+// banco de dados
+
+const pool = require('./database');
+
+(async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ranking (
+      user_id TEXT PRIMARY KEY,
+      wins INTEGER DEFAULT 0
+    );
+  `);
+})();
+
 // 📂 Carregar comandos
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
