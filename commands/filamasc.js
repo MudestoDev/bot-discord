@@ -11,8 +11,9 @@ const fs = require('fs');
 // 📂 CONTADOR
 let contadorData = JSON.parse(fs.readFileSync('./filaCount.json', 'utf-8'));
 
-// 🧠 IMPORTA O MESMO MAP (NÃO CRIAR NOVO!)
-const { filas } = require('./fila');
+// 🧠 IMPORTA FILAS (COM SEGURANÇA)
+const filaModule = require('./fila');
+const filas = filaModule.filas;
 
 // 🔒 PERMISSÃO
 const CARGOS_PERMITIDOS = [
@@ -52,7 +53,6 @@ module.exports = {
 
     const modo = interaction.options.getString('modo');
     const valor = interaction.options.getInteger('valor');
-
     const tamanho = parseInt(modo.split('v')[0]) * 2;
 
     // 🔢 ID
@@ -101,7 +101,6 @@ module.exports = {
         .setStyle(ButtonStyle.Danger)
     );
 
-    // 📩 ENVIA
     await interaction.reply({
       embeds: [embed],
       components: [row]
@@ -109,8 +108,8 @@ module.exports = {
 
     const mensagem = await interaction.fetchReply();
 
-    // 🧠 SALVA NA MEMÓRIA (MAP COMPARTILHADO)
-    filas.set(idFila, {
+    // 🧠 OBJETO DA FILA
+    const novaFila = {
       jogadores: [],
       modo,
       valor,
@@ -120,9 +119,18 @@ module.exports = {
       channelId: mensagem.channel.id,
       iniciada: false,
       tipo: 'masc'
-    });
+    };
 
-    // 💾 SALVA NO JSON (PERSISTÊNCIA)
+    // 🚨 VALIDAÇÃO IMPORTANTE
+    if (!filas) {
+      console.error('❌ ERRO: filas está undefined');
+      return;
+    }
+
+    // 🧠 SALVA NA MEMÓRIA
+    filas.set(idFila, novaFila);
+
+    // 💾 SALVA NO JSON
     const caminho = './filas.json';
 
     let data = {};
@@ -130,7 +138,7 @@ module.exports = {
       data = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
     }
 
-    data[idFila] = filas.get(idFila);
+    data[idFila] = novaFila;
 
     fs.writeFileSync(caminho, JSON.stringify(data, null, 2));
   }

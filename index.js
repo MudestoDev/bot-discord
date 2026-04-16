@@ -188,131 +188,157 @@ if (interaction.customId === 'fechar_ticket') {
   }
 }
 
-    // =========================
-    // 🎮 FILA
-    // =========================
-    if (interaction.customId.startsWith('fila_')) {
+// =========================
+// 🎮 FILA
+// =========================
+if (interaction.customId.startsWith('fila_')) {
 
-      const [_, action, id] = interaction.customId.split('_');
-      const fila = filas.get(id);
+  const [_, action, id] = interaction.customId.split('_');
 
-      if (!fila) {
-        return interaction.reply({ content: '❌ Fila não encontrada.', flags: 64 });
+  if (!filas) {
+    console.error('❌ filas undefined');
+    return interaction.reply({ content: 'Erro interno.', flags: 64 });
+  }
+
+  let filaAtual = filas.get(id);
+
+  // 🔥 RECUPERA DO JSON SE NECESSÁRIO
+  if (!filaAtual) {
+    const caminho = './filas.json';
+
+    if (fs.existsSync(caminho)) {
+      const data = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
+
+      if (data[id]) {
+        filas.set(id, data[id]);
+        filaAtual = data[id];
+        console.log(`♻️ Fila ${id} recuperada`);
       }
+    }
+  }
 
-      const userId = interaction.user.id;
+  if (!filaAtual) {
+    return interaction.reply({ content: '❌ Fila não encontrada.', flags: 64 });
+  }
 
-      // ➕ ENTRAR
-      if (action === 'entrar') {
+  const userId = interaction.user.id;
 
-        if (fila.jogadores.includes(userId)) {
-          return interaction.reply({ content: 'Já está na fila', flags: 64 });
-        }
+  // ➕ ENTRAR
+  if (action === 'entrar') {
 
-        if (fila.jogadores.length >= fila.tamanho) {
-          return interaction.reply({ content: 'Fila cheia', flags: 64 });
-        }
+    if (filaAtual.jogadores.includes(userId)) {
+      return interaction.reply({ content: 'Já está na fila', flags: 64 });
+    }
 
-        fila.jogadores.push(userId);
+    if (filaAtual.jogadores.length >= filaAtual.tamanho) {
+      return interaction.reply({ content: 'Fila cheia', flags: 64 });
+    }
+
+    filaAtual.jogadores.push(userId);
+  }
+
+  // ➖ SAIR
+  if (action === 'sair') {
+    filaAtual.jogadores = filaAtual.jogadores.filter(u => u !== userId);
+  }
+
+  // ▶ START
+  if (action === 'start') {
+
+    if (interaction.user.id !== filaAtual.criador) {
+      return interaction.reply({
+        content: '❌ Apenas o criador pode iniciar.',
+        flags: 64
+      });
+    }
+
+    if (filaAtual.jogadores.length < filaAtual.tamanho) {
+      return interaction.reply({
+        content: 'Fila não está cheia.',
+        flags: 64
+      });
+    }
+
+    await interaction.deferUpdate();
+    await iniciarFila(interaction.guild, filaAtual, id);
+    return;
+  }
+
+  // 🛑 FINALIZAR
+  if (action === 'end') {
+
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+
+    const temPermissao = member.roles.cache.some(role =>
+      CARGOS_PERMITIDOS.includes(role.id)
+    );
+
+    const ehCriador = interaction.user.id === filaAtual.criador;
+
+    if (!temPermissao && !ehCriador) {
+      return interaction.reply({
+        content: '❌ Apenas criador ou staff pode finalizar.',
+        flags: 64
+      });
+    }
+
+    console.log(
+      `Fila(${id}) - JogadoresID:${filaAtual.jogadores.join(',')} - Finalizada por ${interaction.user.id}`
+    );
+
+    const canais = interaction.guild.channels.cache.filter(c =>
+      c.name.includes(id)
+    );
+
+    await interaction.channel.send('⚠️ Esta fila será apagada em 10 segundos...');
+
+    setTimeout(async () => {
+      for (const canal of canais.values()) {
+        await canal.delete().catch(() => {});
       }
+      filas.delete(id);
+    }, 10000);
 
-      // ➖ SAIR
-      if (action === 'sair') {
-        fila.jogadores = fila.jogadores.filter(u => u !== userId);
-      }
-
-      // ▶ START
-      if (action === 'start') {
-
-        if (interaction.user.id !== fila.criador) {
-          return interaction.reply({
-            content: '❌ Apenas o criador pode iniciar.',
-            flags: 64
-          });
-        }
-
-        if (fila.jogadores.length < fila.tamanho) {
-          return interaction.reply({
-            content: 'Fila não está cheia.',
-            flags: 64
-          });
-        }
-
-        await interaction.deferUpdate();
-        await iniciarFila(interaction.guild, fila, id);
-        return;
-      }
-
-      // 🛑 FINALIZAR
- if (action === 'end') {
-
-  const member = await interaction.guild.members.fetch(interaction.user.id);
-console.log(CARGOS_PERMITIDOS);
-  const temPermissao = member.roles.cache.some(role =>
-    CARGOS_PERMITIDOS.includes(role.id)
-  );
-
-  const ehCriador = interaction.user.id === fila.criador;
-
-  if (!temPermissao && !ehCriador) {
     return interaction.reply({
-      content: '❌ Apenas quem criou a fila ou staff pode finalizar.',
+      content: '✅ Fila finalizada',
       flags: 64
     });
   }
 
-  console.log(
-    `Fila(${id}) - JogadoresID:${fila.jogadores.join(',')} - Finalizada por ${interaction.user.id}`
-  );
+  // 💾 SALVAR SEMPRE
+  const data = JSON.parse(fs.readFileSync('./filas.json', 'utf-8'));
+  data[id] = filaAtual;
+  fs.writeFileSync('./filas.json', JSON.stringify(data, null, 2));
 
-  const canais = interaction.guild.channels.cache.filter(c =>
-    c.name.includes(id)
-  );
+  // 📊 ATUALIZA EMBED
+  const slots = [];
 
-  await interaction.channel.send('⚠️ Esta fila será apagada em 10 segundos...');
-
-  setTimeout(async () => {
-    for (const canal of canais.values()) {
-      await canal.delete().catch(() => {});
-    }
-    filas.delete(id);
-  }, 10000);
-
-  return interaction.reply({
-    content: '✅ Fila finalizada',
-    flags: 64
-  });
-}
-
-      // 📊 ATUALIZA EMBED
-      let slots = [];
-
-      for (let i = 0; i < fila.tamanho; i++) {
-        if (fila.jogadores[i]) {
-          slots.push(`\`${i + 1}.\` <@${fila.jogadores[i]}>`);
-        } else {
-          slots.push(`\`${i + 1}.\` Vazio`);
-        }
-      }
-
-      const embed = EmbedBuilder.from(interaction.message.embeds[0])
-        .setFields([{
-          name: `👥 Jogadores (${fila.jogadores.length}/${fila.tamanho})`,
-          value: slots.join('\n')
-        }]);
-
-      await interaction.update({ embeds: [embed] });
-
-      // ⏱ AUTO START
-      if (fila.jogadores.length === fila.tamanho && !fila.iniciada) {
-        fila.iniciada = true;
-
-        setTimeout(() => {
-          iniciarFila(interaction.guild, fila, id).catch(console.error);
-        }, 10000);
-      }
+  for (let i = 0; i < filaAtual.tamanho; i++) {
+    if (filaAtual.jogadores[i]) {
+      slots.push(`\`${i + 1}.\` <@${filaAtual.jogadores[i]}>`);
+    } else {
+      slots.push(`\`${i + 1}.\` Vazio`);
     }
   }
+
+  const embed = EmbedBuilder.from(interaction.message.embeds[0])
+    .setFields([{
+      name: `👥 Jogadores (${filaAtual.jogadores.length}/${filaAtual.tamanho})`,
+      value: slots.join('\n')
+    }]);
+
+  await interaction.update({ embeds: [embed] });
+
+  // ⏱ AUTO START
+  if (filaAtual.jogadores.length === filaAtual.tamanho && !filaAtual.iniciada) {
+    filaAtual.iniciada = true;
+
+    setTimeout(() => {
+      iniciarFila(interaction.guild, filaAtual, id).catch(console.error);
+    }, 10000);
+  }
+}
+}
 // =========================
 // 📝 MODAL (FECHAR TICKET)
 // =========================

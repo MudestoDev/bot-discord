@@ -8,13 +8,13 @@ const {
 
 const fs = require('fs');
 
-// 📂 CONTADOR PERSISTENTE
+// 📂 CONTADOR
 let contadorData = JSON.parse(fs.readFileSync('./filaCount.json', 'utf-8'));
 
-// 🧠 FILAS EM MEMÓRIA
+// 🧠 MAP GLOBAL (ÚNICO!)
 const filas = new Map();
 
-// 🔒 CARGOS PERMITIDOS
+// 🔒 PERMISSÃO
 const CARGOS_PERMITIDOS = [
   '1490523988747878401',
   '1487970426222018592',
@@ -55,7 +55,7 @@ module.exports = {
 
     const tamanho = parseInt(modo.split('v')[0]) * 2;
 
-    // 🔢 ID SEQUENCIAL
+    // 🔢 ID
     const idFila = String(contadorData.contador).padStart(3, '0');
 
     contadorData.contador++;
@@ -64,10 +64,7 @@ module.exports = {
     fs.writeFileSync('./filaCount.json', JSON.stringify(contadorData, null, 2));
 
     // 🎯 SLOTS
-    let slots = [];
-    for (let i = 0; i < tamanho; i++) {
-      slots.push(`\`${i + 1}.\` Vazio`);
-    }
+    const slots = Array.from({ length: tamanho }, (_, i) => `\`${i + 1}.\` Vazio`);
 
     // 🎨 EMBED
     const embed = new EmbedBuilder()
@@ -104,39 +101,40 @@ module.exports = {
         .setStyle(ButtonStyle.Danger)
     );
 
-    // ✅ RESPONDE NORMAL (SEM fetchReply)
     await interaction.reply({
       embeds: [embed],
       components: [row]
     });
 
-    // ⏱️ AGUARDA DISCORD CRIAR A MSG
     const mensagem = await interaction.fetchReply();
 
-const caminho = './filas.json';
+    // 💾 JSON
+    const caminho = './filas.json';
 
-// lê existente
-let data = {};
-if (fs.existsSync(caminho)) {
-  data = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
-}
+    let data = {};
+    if (fs.existsSync(caminho)) {
+      data = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
+    }
 
-// salva fila no JSON
-data[idFila] = {
-  jogadores: [],
-  modo,
-  valor,
-  tamanho,
-  criador: interaction.user.id,
-  messageId: mensagem.id,
-  channelId: mensagem.channel.id,
-  iniciada: false,
-  tipo: 'normal'
+    const novaFila = {
+      jogadores: [],
+      modo,
+      valor,
+      tamanho,
+      criador: interaction.user.id,
+      messageId: mensagem.id,
+      channelId: mensagem.channel.id,
+      iniciada: false,
+      tipo: 'normal'
+    };
+
+    // salva JSON
+    data[idFila] = novaFila;
+    fs.writeFileSync(caminho, JSON.stringify(data, null, 2));
+
+    // salva memória
+    filas.set(idFila, novaFila);
+  },
+
+  filas // 🔥 EXPORT CORRETO
 };
-
-fs.writeFileSync(caminho, JSON.stringify(data, null, 2));
-
-// 🧠 SALVA TAMBÉM NA MEMÓRIA
-filas.set(idFila, data[idFila])
-module.exports.filas = filas;
-}}
