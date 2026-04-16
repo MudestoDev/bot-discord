@@ -30,7 +30,6 @@ const CARGOS_PERMITIDOS = [
   '1487970427329577021'
 ];
 
-const fs = require('fs');
 const { filas } = require('./commands/fila');
 
 const caminhoFilas = './filas.json';
