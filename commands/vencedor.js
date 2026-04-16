@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 
 module.exports = {
@@ -24,7 +24,6 @@ module.exports = {
       ranking = JSON.parse(fs.readFileSync(caminho, 'utf-8'));
     }
 
-    // ✅ AGORA ESTÁ NO LUGAR CERTO
     const jogadores = [
       interaction.options.getUser('jogador1'),
       interaction.options.getUser('jogador2'),
@@ -32,22 +31,35 @@ module.exports = {
       interaction.options.getUser('jogador4')
     ].filter(Boolean);
 
+    // 🧠 adiciona vitórias
     for (const user of jogadores) {
       if (!ranking[user.id]) {
         ranking[user.id] = 0;
       }
-
       ranking[user.id] += 1;
     }
 
     fs.writeFileSync(caminho, JSON.stringify(ranking, null, 2));
 
-const embed = new EmbedBuilder()
-  .setColor(0x57F287)
-  .setTitle('🏆 Vitória Registrada')
-  .setDescription(`Vitória adicionada para:\n${jogadores.map(j => `<@${j.id}>`).join('\n')}`)
-  .setTimestamp();
+    // 🎨 EMBED
+    const embed = new EmbedBuilder()
+      .setColor(0x57F287)
+      .setTitle('🏆 Vitória Registrada')
+      .setDescription(
+        `**Vitória adicionada para:**\n\n${jogadores.map(j => `👤 <@${j.id}>`).join('\n')}`
+      )
+      .addFields({
+        name: '📊 Total de Vitórias',
+        value: jogadores.map(j => `👤 <@${j.id}>: **${ranking[j.id]}**`).join('\n')
+      })
+      .setFooter({
+        text: `Registrado por ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL()
+      })
+      .setTimestamp();
 
-return interaction.reply({
-  embeds: [embed]
-})}}
+    return interaction.reply({
+      embeds: [embed]
+    });
+  }
+};
