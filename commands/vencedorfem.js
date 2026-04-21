@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const pool = require('../database');
+const { CARGOS_PERMITIDOS } = require('../config');                             ;
 
 module.exports = {
   data: new SlashCommandBuilder()
