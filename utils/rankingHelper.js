@@ -1,6 +1,7 @@
 async function verificarCargo(member, wins, cargosConfig) {
 
   for (const vitoria in cargosConfig) {
+
     if (wins >= vitoria) {
 
       const cargoId = cargosConfig[vitoria];
@@ -11,3 +12,5 @@ async function verificarCargo(member, wins, cargosConfig) {
     }
   }
 }
+
+module.exports = { verificarCargo }; // 🔥 OBRIGATÓRIO

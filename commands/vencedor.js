@@ -73,6 +73,7 @@ module.exports = {
 
         // 🎖 verifica cargo
         await verificarCargo(member, wins, RANKING_CARGOS);
+        console.log('verificarCargo:', verificarCargo);
       }
 
       const embed = new EmbedBuilder()

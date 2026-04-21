@@ -49,6 +49,7 @@ module.exports = {
     }
 
     await verificarCargo(member, wins, RANKING_CARGOS);
+    console.log('verificarCargo:', verificarCargo);
 
     const embed = new EmbedBuilder()
       .setColor(0xFF69B4)
