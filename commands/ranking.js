@@ -47,7 +47,7 @@ module.exports = {
 
       return new EmbedBuilder()
         .setColor('#FF4DA6') // 💖 ROSA
-        .setTitle('💖 Ranking2')
+        .setTitle('💖 Ranking')
         .setDescription(lista)
         .setFooter({
           text: `Página ${pagina + 1} de ${Math.ceil(res.rows.length / porPagina)}`
