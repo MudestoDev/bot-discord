@@ -23,7 +23,7 @@ const CARGOS_PERMITIDOS = [
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('fila')
+    .setName('filafem')
     .setDescription('Criar fila')
     .addStringOption(opt =>
       opt.setName('modo')

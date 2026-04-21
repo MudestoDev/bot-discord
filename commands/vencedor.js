@@ -1,5 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const pool = require('../database');
+const { verificarCargo } = require('../utils/rankingHelper');
+const { RANKING_CARGOS } = require('../config');
 
 const { CARGOS_PERMITIDOS } = require('../config');
 
@@ -31,6 +33,8 @@ module.exports = {
 
   async execute(interaction) {
 
+    
+
     const jogadores = [
       interaction.options.getUser('jogador1'),
       interaction.options.getUser('jogador2'),
@@ -46,6 +50,7 @@ module.exports = {
         DO UPDATE SET wins = ranking.wins + 1
       `, [user.id]);
     }
+          await verificarCargo(member, wins, RANKING_CARGOS);
 
     const embed = new EmbedBuilder()
       .setColor(0x57F287)
@@ -54,6 +59,7 @@ module.exports = {
         `Vitória adicionada para:\n\n${jogadores.map(j => `👤 <@${j.id}>`).join('\n')}`
       )
       .setTimestamp();
+
 
     return interaction.reply({ embeds: [embed] });
   }

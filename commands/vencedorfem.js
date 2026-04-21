@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const pool = require('../database');
-const { CARGOS_PERMITIDOS } = require('../config');                             ;
+const { CARGOS_PERMITIDOS } = require('../config');       
+const { RANKING_FEM_CARGOS } = require('../config');
+const { verificarCargo } = require('../utils/rankingHelper');;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -46,11 +48,15 @@ module.exports = {
       `, [user.id]);
     }
 
+    await verificarCargo(member, wins, RANKING_CARGOS);
+
     const embed = new EmbedBuilder()
       .setColor(0xFF69B4)
       .setTitle('🏆 Vitória Feminina Registrada')
       .setDescription(jogadores.map(j => `<@${j.id}>`).join('\n'))
       .setTimestamp();
+
+      
 
     return interaction.reply({ embeds: [embed] });
   }

@@ -24,7 +24,7 @@ const CARGOS_PERMITIDOS = [
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('filamasc')
+    .setName('fila')
     .setDescription('Criar fila masculina')
     .addStringOption(opt =>
       opt.setName('modo')
