@@ -3,28 +3,28 @@ const pool = require('../database');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('vencedor')
-    .setDescription('Registrar vencedores')
+    .setName('vencedorfem')
+    .setDescription('Registrar vencedores femininos') // ✅ OBRIGATÓRIO
 
     .addUserOption(opt =>
       opt.setName('jogador1')
-        .setDescription('Jogador 1') // ✅ obrigatório
+        .setDescription('Jogador 1') // ✅
         .setRequired(true)
     )
 
     .addUserOption(opt =>
       opt.setName('jogador2')
-        .setDescription('Jogador 2') // ✅ obrigatório
+        .setDescription('Jogador 2') // ✅
     )
 
     .addUserOption(opt =>
       opt.setName('jogador3')
-        .setDescription('Jogador 3') // ✅ obrigatório
+        .setDescription('Jogador 3') // ✅
     )
 
     .addUserOption(opt =>
       opt.setName('jogador4')
-        .setDescription('Jogador 4') // ✅ obrigatório
+        .setDescription('Jogador 4') // ✅
     ),
 
   async execute(interaction) {
@@ -38,19 +38,17 @@ module.exports = {
 
     for (const user of jogadores) {
       await pool.query(`
-        INSERT INTO ranking (user_id, wins)
+        INSERT INTO ranking_fem (user_id, wins)
         VALUES ($1, 1)
         ON CONFLICT (user_id)
-        DO UPDATE SET wins = ranking.wins + 1
+        DO UPDATE SET wins = ranking_fem.wins + 1
       `, [user.id]);
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0x57F287)
-      .setTitle('🏆 Vitória Registrada')
-      .setDescription(
-        `Vitória adicionada para:\n\n${jogadores.map(j => `👤 <@${j.id}>`).join('\n')}`
-      )
+      .setColor(0xFF69B4)
+      .setTitle('🏆 Vitória Feminina Registrada')
+      .setDescription(jogadores.map(j => `<@${j.id}>`).join('\n'))
       .setTimestamp();
 
     return interaction.reply({ embeds: [embed] });
