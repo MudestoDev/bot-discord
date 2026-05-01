@@ -524,14 +524,12 @@ if (fila.tipo === 'masc') {
 await call1.permissionOverwrites.set([
   { id: guild.id, deny: ['ViewChannel'] },
   { id: '1490523988747878401', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
-  { id: '1494092806937907371', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
   { id: '1487970442760425552', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] }
 ]);
 
 await call2.permissionOverwrites.set([
   { id: guild.id, deny: ['ViewChannel'] },
   { id: '1490523988747878401', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
-  { id: '1494092806937907371', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
   { id: '1487970442760425552', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] }
 ]);
 
