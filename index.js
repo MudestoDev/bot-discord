@@ -516,83 +516,74 @@ if (fila.tipo === 'masc') {
 // =========================
 // 🔐 PERMISSÕES NAS CALLS
 // =========================
-const jogadoresPermissoes = (
-  await Promise.all(
-    jogadores
-      .filter(id => typeof id === 'string' && id)
-      .map(async (id) => {
-        try {
-          const member = await guild.members.fetch(id);
-          return {
-            id: member.id,
-            allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
-          };
-        } catch {
-          console.log('⚠️ Jogador inválido ignorado:', id);
-          return null;
-        }
-      })
-  )
-).filter(Boolean);
 
-const permissoesCall = [
-  {
-    id: guild.id,
-    deny: ['ViewChannel']
-  },
-  {
-    id: '1490523988747878401', // 👈 STAFF
-    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
-  },
-  {
-    id: '1494092806937907371',
-    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
-  },
-  {
-    id: '1487970442760425552',
-    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
-  },
-  ...jogadoresPermissoes
-];
+// base
+await call1.permissionOverwrites.set([
+  { id: guild.id, deny: ['ViewChannel'] },
+  { id: '1490523988747878401', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
+  { id: '1494092806937907371', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
+  { id: '1487970442760425552', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] }
+]);
 
-// aplica nas duas calls
-await call1.permissionOverwrites.set(permissoesCall);
-await call2.permissionOverwrites.set(permissoesCall);
+await call2.permissionOverwrites.set([
+  { id: guild.id, deny: ['ViewChannel'] },
+  { id: '1490523988747878401', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
+  { id: '1494092806937907371', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
+  { id: '1487970442760425552', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] }
+]);
+
+// jogadores (UM POR UM)
+for (const id of jogadores) {
+  try {
+    if (!id) continue;
+
+    await guild.members.fetch(id); // garante cache
+
+    await call1.permissionOverwrites.create(id, {
+      ViewChannel: true,
+      Connect: true,
+      Speak: true,
+      Stream: true
+    });
+
+    await call2.permissionOverwrites.create(id, {
+      ViewChannel: true,
+      Connect: true,
+      Speak: true,
+      Stream: true
+    });
+
+  } catch (err) {
+    console.log('⚠️ erro ao setar call:', id);
+  }
+}
 
 
 // =========================
 // 🔐 PERMISSÕES CHAT
 // =========================
-const jogadoresChatPermissoes = (
-  await Promise.all(
-    jogadores
-      .filter(id => typeof id === 'string' && id)
-      .map(async (id) => {
-        try {
-          const member = await guild.members.fetch(id);
-          return {
-            id: member.id,
-            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-          };
-        } catch {
-          return null;
-        }
-      })
-  )
-).filter(Boolean);
 
 await chat.permissionOverwrites.set([
-  {
-    id: guild.id,
-    deny: ['ViewChannel']
-  },
-  {
-    id: '1490523988747878401', // 👈 STAFF
-    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-  },
-  ...jogadoresChatPermissoes
+  { id: guild.id, deny: ['ViewChannel'] },
+  { id: '1490523988747878401', allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }
 ]);
 
+for (const id of jogadores) {
+  try {
+    if (!id) continue;
+
+    await guild.members.fetch(id);
+
+    await chat.permissionOverwrites.create(id, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true
+    });
+
+  } catch {
+    console.log('⚠️ erro ao setar chat:', id);
+  }
+}
 
   // =========================
   // 📩 MENSAGEM DO CHAT
