@@ -518,18 +518,20 @@ if (fila.tipo === 'masc') {
 // =========================
 const jogadoresPermissoes = (
   await Promise.all(
-    jogadores.map(async (id) => {
-      try {
-        const member = await guild.members.fetch(id);
-        return {
-          id: member.id,
-          allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
-        };
-      } catch {
-        console.log('⚠️ Jogador inválido ignorado:', id);
-        return null;
-      }
-    })
+    jogadores
+      .filter(id => typeof id === 'string' && id)
+      .map(async (id) => {
+        try {
+          const member = await guild.members.fetch(id);
+          return {
+            id: member.id,
+            allow: ['ViewChannel', 'Connect', 'Speak', 'Stream']
+          };
+        } catch {
+          console.log('⚠️ Jogador inválido ignorado:', id);
+          return null;
+        }
+      })
   )
 ).filter(Boolean);
 
@@ -557,22 +559,25 @@ const permissoesCall = [
 await call1.permissionOverwrites.set(permissoesCall);
 await call2.permissionOverwrites.set(permissoesCall);
 
+
 // =========================
 // 🔐 PERMISSÕES CHAT
 // =========================
 const jogadoresChatPermissoes = (
   await Promise.all(
-    jogadores.map(async (id) => {
-      try {
-        const member = await guild.members.fetch(id);
-        return {
-          id: member.id,
-          allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-        };
-      } catch {
-        return null;
-      }
-    })
+    jogadores
+      .filter(id => typeof id === 'string' && id)
+      .map(async (id) => {
+        try {
+          const member = await guild.members.fetch(id);
+          return {
+            id: member.id,
+            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+          };
+        } catch {
+          return null;
+        }
+      })
   )
 ).filter(Boolean);
 
@@ -587,6 +592,7 @@ await chat.permissionOverwrites.set([
   },
   ...jogadoresChatPermissoes
 ]);
+
 
   // =========================
   // 📩 MENSAGEM DO CHAT
