@@ -517,7 +517,7 @@ if (fila.tipo === 'masc') {
 // 🔐 PERMISSÕES NAS CALLS
 // =========================
 
-// base
+// limpa e seta base
 await call1.permissionOverwrites.set([
   { id: guild.id, deny: ['ViewChannel'] },
   { id: '1490523988747878401', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] },
@@ -532,21 +532,22 @@ await call2.permissionOverwrites.set([
   { id: '1487970442760425552', allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'] }
 ]);
 
-// jogadores (UM POR UM)
-for (const id of jogadores) {
+// adiciona jogadores
+for (const id of fila.jogadores) {
   try {
-    if (!id) continue;
+    if (!id || typeof id !== 'string') continue;
 
-    await guild.members.fetch(id); // garante cache
+    const member = await guild.members.fetch(id).catch(() => null);
+    if (!member) continue;
 
-    await call1.permissionOverwrites.create(id, {
+    await call1.permissionOverwrites.create(member, {
       ViewChannel: true,
       Connect: true,
       Speak: true,
       Stream: true
     });
 
-    await call2.permissionOverwrites.create(id, {
+    await call2.permissionOverwrites.create(member, {
       ViewChannel: true,
       Connect: true,
       Speak: true,
@@ -554,7 +555,7 @@ for (const id of jogadores) {
     });
 
   } catch (err) {
-    console.log('⚠️ erro ao setar call:', id);
+    console.log('⚠️ erro CALL:', id);
   }
 }
 
@@ -568,20 +569,21 @@ await chat.permissionOverwrites.set([
   { id: '1490523988747878401', allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }
 ]);
 
-for (const id of jogadores) {
+for (const id of fila.jogadores) {
   try {
-    if (!id) continue;
+    if (!id || typeof id !== 'string') continue;
 
-    await guild.members.fetch(id);
+    const member = await guild.members.fetch(id).catch(() => null);
+    if (!member) continue;
 
-    await chat.permissionOverwrites.create(id, {
+    await chat.permissionOverwrites.create(member, {
       ViewChannel: true,
       SendMessages: true,
       ReadMessageHistory: true
     });
 
-  } catch {
-    console.log('⚠️ erro ao setar chat:', id);
+  } catch (err) {
+    console.log('⚠️ erro CHAT:', id);
   }
 }
 
