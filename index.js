@@ -444,11 +444,14 @@ async function iniciarFila(guild, fila, id) {
   if (fila.iniciadaExecutada) return;
   fila.iniciadaExecutada = true;
 
+  
   const jogadores = fila.jogadores;
 
   console.log(
     `Fila(${id}) - JogadoresID:${jogadores.join(',')} - Iniciada por ${fila.criador}`
   );
+
+      console.log('JOGADORES:', fila.jogadores);
 
   // =========================
   // 🔒 DESATIVAR BOTÕES DA FILA ORIGINAL
@@ -612,5 +615,7 @@ for (const id of fila.jogadores) {
 // 🔒 segurança
 process.on('unhandledRejection', console.error);
 process.on('uncaughtException', console.error);
+
+
 
 client.login(process.env.TOKEN);
